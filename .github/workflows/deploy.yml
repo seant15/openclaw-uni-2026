@@ -1,0 +1,47 @@
+name: Deploy to Coolify
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sync configs to VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "config/,workspace/,scripts/,docker-compose.yml"
+          target: "/data/uni-openclaw-infra/"
+          strip_components: 0
+
+      - name: Deploy on Coolify
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /data/uni-openclaw-infra
+            
+            # Pull latest OpenClaw image
+            docker-compose pull
+            
+            # Restart with new configs
+            docker-compose up -d --force-recreate
+            
+            # Wait for healthcheck
+            sleep 5
+            
+            # Verify deployment
+            docker-compose ps
+            
+            echo "✅ Deployment complete"
