@@ -1,518 +1,635 @@
 # OpenClaw Troubleshooting Guide
 
-**For Future Colleagues & On-Call Engineers**
-
-This guide covers common issues and their solutions. When something breaks, start here.
+**For:** Future team members, DevOps, and emergency situations  
+**When to use:** Something broke and you need to fix it fast  
+**Start here:** Check `ARCHITECTURE.md` if you don't understand the system layout
 
 ---
 
-## Quick Diagnostic Commands
+## 🚨 Critical Issues (Fix First)
 
+### 1. OpenClaw Completely Down
+
+**Symptoms:**
+- No responses in Slack
+- `openclaw status` fails
+- Gateway unreachable
+
+**Quick Fix:**
 ```bash
-# Check if OpenClaw is running
+cd /data/uni-openclaw-infra
+
+# 1. Check if container is running
+docker-compose ps
+
+# 2. If not running, start it
+docker-compose up -d
+
+# 3. Check logs for errors
+docker-compose logs --tail 100
+
+# 4. If stuck, force restart
+docker-compose down
+docker-compose up -d
+```
+
+**Still down?** Check [Deep Diagnostics](#deep-diagnostics)
+
+---
+
+### 2. Lost All Data After Redeploy
+
+**Symptoms:**
+- Agents don't remember previous conversations
+- MEMORY.md empty or missing
+- Session history gone
+
+**Immediate Action:**
+```bash
+# Check if backups exist
+ls -lth /data/backups/openclaw/
+
+# If backups exist, restore latest
+cd /data/uni-openclaw-infra
+./scripts/restore.sh
+
+# If specific backup needed
+./scripts/restore.sh /data/backups/openclaw/openclaw_backup_20260226_120000.tar.gz
+
+# Restart to apply
+docker-compose restart
+```
+
+**No backups?** Check if data exists elsewhere:
+```bash
+# Check persistent volume
+ls -la /data/.openclaw/
+
+# If data exists but not loaded, check volume mounts
+docker inspect openclaw-gateway | grep -A20 Mounts
+```
+
+---
+
+### 3. Can't Connect to Gateway
+
+**Symptoms:**
+- `openclaw status` hangs
+- Browser can't access control UI
+- Connection refused
+
+**Diagnostic Steps:**
+```bash
+# 1. Check if process is listening
+netstat -tlnp | grep 18789
+
+# 2. Check container port mapping
+docker port openclaw-gateway
+
+# 3. Test locally
+curl http://localhost:18789/status
+
+# 4. Check firewall
+ufw status
+iptables -L | grep 18789
+```
+
+**Common Fixes:**
+```bash
+# Restart container
+docker-compose restart
+
+# If port conflict, kill existing process
+lsof -ti:18789 | xargs kill -9
+docker-compose up -d
+```
+
+---
+
+## 🔧 Configuration Issues
+
+### Config Changes Not Applied
+
+**Symptoms:**
+- Changed openclaw.json but behavior same
+- New agents not showing up
+- Old settings persist
+
+**Root Cause:** Config cached or not reloaded
+
+**Fix:**
+```bash
+# 1. Verify file was updated
+cat /data/uni-openclaw-infra/config/openclaw.json | grep -A5 "your-change"
+
+# 2. Restart container to reload
+docker-compose restart
+
+# 3. Verify inside container
+docker exec openclaw-gateway cat /home/node/.openclaw/openclaw.json
+
+# 4. Check gateway picked it up
 openclaw status
+```
 
-# Check Docker containers
-docker ps | grep openclaw
-docker-compose -f /data/uni-openclaw-infra/docker-compose.yml ps
+**Git sync issues?**
+```bash
+# Force pull latest
+cd /data/uni-openclaw-infra
+git fetch origin
+git reset --hard origin/main
 
-# View recent logs
-docker logs openclaw-gateway --tail 100
+# Then restart
+docker-compose restart
+```
 
-# Check backup status
-ls -lth /data/backups/openclaw/ | head -5
+---
 
+### Environment Variables Not Working
+
+**Symptoms:**
+- API keys not recognized
+- Slack not connecting
+- Model falling back to wrong provider
+
+**Diagnostic:**
+```bash
+# Check env vars in container
+docker exec openclaw-gateway env | grep -i api
+
+# Compare with Coolify dashboard
+# Go to Coolify > Service > Environment Variables
+```
+
+**Fix:**
+```bash
+# If missing in container but set in Coolify:
+# 1. Redeploy from Coolify UI
+# 2. Or restart container
+docker-compose down
+docker-compose up -d
+```
+
+---
+
+## 💬 Agent & Conversation Issues
+
+### Agent Doesn't Remember Context
+
+**Symptoms:**
+- Asking same questions repeatedly
+- No continuity from yesterday
+- "As an AI, I don't have memory of..."
+
+**Diagnostic:**
+```bash
+# 1. Check session state
+openclaw sessions --json
+
+# 2. Check if QMD working
+ls -la /data/.openclaw/agents/clover/qmd/
+
+# 3. Check memory files
+ls -la /data/workspace/memory/
+cat /data/workspace/MEMORY.md
+```
+
+**Fixes:**
+
+If QMD not updating:
+```bash
+# Force QMD re-index
+docker exec openclaw-gateway qmd update
+
+# Or restart container
+docker-compose restart
+```
+
+If sessions too long:
+```bash
+# Reset manually
+# In chat, type: /new
+```
+
+If memory not loading:
+```bash
+# Check file permissions
+ls -la /data/workspace/MEMORY.md
+
+# Should be readable by container
+chmod 644 /data/workspace/MEMORY.md
+```
+
+---
+
+### Wrong Agent Responding
+
+**Symptoms:**
+- Asking Clover but Mary responds
+- Agent behavior doesn't match personality
+- Wrong model being used
+
+**Diagnostic:**
+```bash
+# Check agent bindings
+openclaw config get bindings
+
+# Check current session agent
+openclaw status | grep agent
+
+# Check session file
+cat /data/.openclaw/agents/clover/sessions/sessions.json
+```
+
+**Fix:**
+```bash
+# If wrong agent bound to channel, edit config
+vim /data/uni-openclaw-infra/config/openclaw.json
+
+# Then commit and push
+git commit -am "Fix agent binding"
+git push
+
+# Or manually restart
+docker-compose restart
+```
+
+---
+
+### Session Not Resetting Daily
+
+**Symptoms:**
+- Same session ID for days
+- Context growing too large
+- No clean slate at 4 AM
+
+**Diagnostic:**
+```bash
+# Check current session age
+openclaw sessions --json | grep updatedAt
+
+# Check timezone
+date
+cat /etc/timezone
+
+# Check config
+grep -A10 "resetByType" /data/.openclaw/openclaw.json
+```
+
+**Fix:**
+```bash
+# If config not loaded, restart
+docker-compose restart
+
+# If timezone wrong, set it
+timedatectl set-timezone UTC
+
+# Manual reset for now
+# In chat: /new
+```
+
+---
+
+## 🔐 Security & Auth Issues
+
+### Gateway Token Invalid
+
+**Symptoms:**
+- "Unauthorized" errors
+- Can't access control UI
+- API calls rejected
+
+**Fix:**
+```bash
+# 1. Check current token
+openclaw config get gateway.auth.token
+
+# 2. Generate new token
+NEW_TOKEN=$(openssl rand -hex 32)
+openclaw config set gateway.auth.token "$NEW_TOKEN"
+
+# 3. Update Coolify env var
+# Go to Coolify dashboard > Service > Environment
+# Update OPENCLAW_GATEWAY_TOKEN
+
+# 4. Redeploy
+docker-compose down
+docker-compose up -d
+```
+
+---
+
+### Slack Integration Broken
+
+**Symptoms:**
+- Messages not received
+- "Url verification failed" in Slack
+- No responses in Slack channels
+
+**Diagnostic:**
+```bash
+# Check webhook is accessible
+curl -X POST http://your-vps/webhook/slack \
+  -H "Content-Type: application/json" \
+  -d '{"type":"url_verification","challenge":"test"}'
+
+# Should return: {"challenge":"test"}
+```
+
+**Common Fixes:**
+
+1. **Webhook URL wrong:**
+   - Update in Slack app settings
+   - Must match: `http://your-vps/webhook/slack`
+
+2. **Signing secret incorrect:**
+   ```bash
+   # Verify in config
+   openclaw config get channels.slack.signingSecret
+   
+   # Should match Slack app > Basic Info > Signing Secret
+   ```
+
+3. **Tokens expired:**
+   - Regenerate in Slack app settings
+   - Update in Coolify environment variables
+   - Redeploy
+
+---
+
+## 💾 Backup & Restore Issues
+
+### Backup Script Failing
+
+**Symptoms:**
+- No new backups in /data/backups/openclaw/
+- Cron errors in /var/log/openclaw-backup.log
+- Disk space issues
+
+**Diagnostic:**
+```bash
 # Check disk space
 df -h /data
 
-# Check session status
-openclaw sessions --json 2>/dev/null | head -20
-```
-
----
-
-## Issue Categories
-
-### 🔴 Critical: Service Down
-
-#### Symptom: "OpenClaw not responding" or Slack bot offline
-
-**Step 1: Check if container is running**
-```bash
-docker ps | grep openclaw
-```
-
-**If not running:**
-```bash
-cd /data/uni-openclaw-infra
-docker-compose up -d
-docker-compose logs -f
-```
-
-**Step 2: Check for port conflicts**
-```bash
-netstat -tlnp | grep 18789
-# If something else is using port 18789, kill it or change port
-```
-
-**Step 3: Check entrypoint logs**
-```bash
-docker logs openclaw-gateway 2>&1 | grep -E "(entrypoint|restore|error)"
-```
-
----
-
-### 🟠 High: Data Loss / Sessions Missing
-
-#### Symptom: "I can't see yesterday's conversations" or "Agents don't remember"
-
-**Step 1: Check if backup exists**
-```bash
-ls -la /data/backups/openclaw/
-```
-
-**If no backups:**
-```bash
-# Emergency backup now
+# Check backup script manually
 cd /data/uni-openclaw-infra
 ./scripts/backup.sh
+
+# Check permissions
+ls -la /data/backups/
 ```
 
-**Step 2: Check if data restored on boot**
+**Fix:**
 ```bash
-docker logs openclaw-gateway | grep -i "restore"
-# Should see: "✅ Restore complete" or "ℹ️ No backup found"
-```
+# Create directory if missing
+mkdir -p /data/backups/openclaw
 
-**Step 3: Manual restore**
-```bash
-# List available backups
-ls -t /data/backups/openclaw/openclaw_backup_*.tar.gz
+# Fix permissions
+chmod +x /data/uni-openclaw-infra/scripts/*.sh
 
-# Restore specific backup
-./scripts/restore.sh /data/backups/openclaw/openclaw_backup_20260226_120000.tar.gz
-
-# Or restore latest
-./scripts/restore.sh
-```
-
-**Step 4: Verify sessions restored**
-```bash
-ls -la /data/.openclaw/agents/clover/sessions/
-```
-
----
-
-### 🟡 Medium: QMD Search Not Working
-
-#### Symptom: "Agent doesn't remember what we discussed" or memory_search returns nothing
-
-**Step 1: Check QMD index exists**
-```bash
-ls -la /data/.openclaw/agents/clover/qmd/
-# Should see xdg-cache/ and xdg-config/
-```
-
-**Step 2: Check QMD is enabled in config**
-```bash
-grep -A 5 '"qmd"' /data/uni-openclaw-infra/config/openclaw.json
-```
-
-**Step 3: Rebuild QMD index**
-```bash
-# Stop OpenClaw
-docker-compose down
-
-# Rebuild index
-qmd update /data/workspace
-
-# Restart
-docker-compose up -d
-```
-
-**Step 4: Verify QMD in new session**
-```bash
-# Start a fresh session
-/new
-
-# Ask: "Search for Google Ads setup"
-# Should return results from MEMORY.md
-```
-
----
-
-### 🟡 Medium: Sessions Not Resetting
-
-#### Symptom: "Session is getting too long" or tokens exceeding limit
-
-**Step 1: Check current session size**
-```bash
-openclaw sessions --json 2>/dev/null | grep -E "(totalTokens|sessionKey)"
-```
-
-**Step 2: Check reset configuration**
-```bash
-grep -A 10 '"session"' /data/uni-openclaw-infra/config/openclaw.json
-```
-
-**Should see:**
-```json
-"resetByType": {
-  "direct": { "mode": "daily", "atHour": 4 },
-  "thread": { "mode": "daily", "atHour": 4 },
-  "group": { "mode": "idle", "idleMinutes": 120 }
-}
-```
-
-**Step 3: Manual reset**
-```bash
-# In any chat, type:
-/new
-
-# Or force reset with model change
-/new kimi25
-```
-
-**Step 4: Verify reset worked**
-```bash
-openclaw status
-# Should show: "Context: 0/32k (0%)"
-```
-
----
-
-### 🟡 Medium: Slack Integration Broken
-
-#### Symptom: "Slack bot not responding" or "Messages not going through"
-
-**Step 1: Check Slack tokens**
-```bash
-# In Coolify dashboard, verify these are set:
-echo $SLACK_BOT_TOKEN      # Should start with xoxb-
-echo $SLACK_APP_TOKEN      # Should start with xapp-
-echo $SLACK_SIGNING_SECRET # Should be 32 chars
-```
-
-**Step 2: Test Slack connectivity**
-```bash
-curl -X POST https://slack.com/api/auth.test \
-  -H "Authorization: Bearer $SLACK_BOT_TOKEN"
-# Should return: "ok": true
-```
-
-**Step 3: Check webhook URL**
-```bash
-# In Slack app settings, verify Request URL:
-# https://your-vps/webhook/slack
-
-# Test webhook:
-curl -X POST https://your-vps/webhook/slack \
-  -H "Content-Type: application/json" \
-  -d '{"type":"url_verification","challenge":"test"}'
-```
-
-**Step 4: Regenerate tokens if needed**
-1. Go to https://api.slack.com/apps
-2. Select your app
-3. Regenerate tokens
-4. Update Coolify environment variables
-5. Redeploy
-
----
-
-### 🟢 Low: Backup Failures
-
-#### Symptom: "Backups not being created" or "Cron job not running"
-
-**Step 1: Check cron job**
-```bash
-crontab -l | grep openclaw
-```
-
-**Should see:**
-```
-0 3 * * * /data/uni-openclaw-infra/scripts/backup.sh >> /var/log/openclaw-backup.log 2>&1
-```
-
-**Step 2: Check backup log**
-```bash
-tail -50 /var/log/openclaw-backup.log
-```
-
-**Step 3: Run manual backup**
-```bash
-cd /data/uni-openclaw-infra
-./scripts/backup.sh
-```
-
-**Step 4: Check disk space**
-```bash
-df -h /data
-# If >90% full, clean old backups:
+# Clean old backups manually if disk full
 find /data/backups/openclaw -name "*.tar.gz" -mtime +7 -delete
 ```
 
 ---
 
-### 🟢 Low: GitHub Actions Failing
+### Restore Failing
 
-#### Symptom: "Auto-deploy not working" or "GitHub Actions red X"
+**Symptoms:**
+- `restore.sh` gives errors
+- Data not restored after running
+- Permission denied errors
 
-**Step 1: Check GitHub Actions logs**
-1. Go to GitHub repo → Actions tab
-2. Click failed workflow
-3. Read error message
-
-**Common errors:**
-
-**SSH connection failed:**
-```
-Error: ssh: connect to host 194.238.31.45 port 22: Connection refused
-```
-→ Check VPS is running, SSH port is 22, firewall rules
-
-**Permission denied:**
-```
-Error: Permission denied (publickey)
-```
-→ Check VPS_SSH_KEY secret is correct, key is in authorized_keys
-
-**Docker not found:**
-```
-bash: docker-compose: command not found
-```
-→ SSH user doesn't have docker access, add to docker group
-
-**Step 2: Test manually**
+**Diagnostic:**
 ```bash
-# On VPS, run the same commands as GitHub Actions
+# Check backup file integrity
+tar -tzf /data/backups/openclaw/latest.tar.gz | head
+
+# Check if backup exists
+ls -la /data/backups/openclaw/
+```
+
+**Fix:**
+```bash
+# Stop container first
+docker-compose down
+
+# Manual restore
+cd /
+tar -xzf /data/backups/openclaw/latest.tar.gz
+
+# Fix permissions
+chown -R 1000:1000 /data/.openclaw
+
+# Restart
 cd /data/uni-openclaw-infra
-docker-compose pull
 docker-compose up -d
 ```
 
 ---
 
-### 🟢 Low: Model API Errors
+## 🔍 Deep Diagnostics
 
-#### Symptom: "Model not responding" or "API key invalid"
+### Get Full System State
 
-**Step 1: Check API keys in Coolify**
 ```bash
-# Verify these are set:
-echo $KIMI_API_KEY
-echo $OPENAI_API_KEY
-echo $ANTHROPIC_API_KEY
-```
+# 1. System overview
+echo "=== SYSTEM ==="
+uname -a
+date
+uptime
 
-**Step 2: Test API connectivity**
-```bash
-# Test Kimi
-curl https://api.moonshot.ai/v1/models \
-  -H "Authorization: Bearer $KIMI_API_KEY"
+echo "=== DISK ==="
+df -h
+du -sh /data/.openclaw /data/backups
 
-# Test OpenAI
-curl https://api.openai.com/v1/models \
-  -H "Authorization: Bearer $OPENAI_API_KEY"
-```
+echo "=== CONTAINER ==="
+docker ps -a | grep openclaw
+docker stats --no-stream openclaw-gateway
 
-**Step 3: Check fallback chain**
-```bash
-# In openclaw.json, verify fallbacks are configured:
-grep -A 5 '"fallbacks"' /data/uni-openclaw-infra/config/openclaw.json
-```
+echo "=== PROCESSES ==="
+ps aux | grep openclaw
 
-**Step 4: Switch model temporarily**
-```bash
-# In chat, type:
-/model openai/gpt-4o-mini
+echo "=== PORTS ==="
+netstat -tlnp | grep 18789
 
-# Or start fresh with different model:
-/new openai/gpt-4o-mini
+echo "=== LOGS (last 50) ==="
+docker logs openclaw-gateway --tail 50
+
+echo "=== CONFIG ==="
+openclaw config get
+
+echo "=== SESSIONS ==="
+openclaw sessions --json
+
+echo "=== BACKUPS ==="
+ls -lth /data/backups/openclaw/ | head -5
 ```
 
 ---
 
-## Recovery Procedures
-
-### Complete OpenClaw Rebuild
-
-If everything is broken and you need to start fresh:
+### Network Connectivity Test
 
 ```bash
-# 1. Backup current state (just in case)
+# Test outbound connections (APIs)
+curl -s https://api.moonshot.cn/v1/models | head
+
+# Test Slack connectivity
+curl -s https://slack.com/api/api.test
+
+# Check DNS resolution
+nslookup api.moonshot.cn
+```
+
+---
+
+### Container Debug Shell
+
+```bash
+# Get shell inside container
+docker exec -it openclaw-gateway /bin/sh
+
+# Inside container, check:
+ls -la /home/node/.openclaw/
+cat /home/node/.openclaw/openclaw.json
+env | grep -i token
+ps aux
+```
+
+---
+
+## 🆘 Emergency Recovery
+
+### Complete Rebuild from Scratch
+
+**Use when:** Everything is broken and you need to start fresh
+
+```bash
+# 1. Stop everything
 cd /data/uni-openclaw-infra
-cp -r /data/.openclaw /data/.openclaw.broken.$(date +%Y%m%d)
+docker-compose down
 
-# 2. Stop and remove containers
-docker-compose down -v
+# 2. Backup current state (just in case)
+tar -czf /tmp/emergency-backup-$(date +%s).tar.gz /data/.openclaw /data/workspace
 
-# 3. Remove old data (WARNING: destroys sessions)
-# Only do this if you're sure!
-rm -rf /data/.openclaw/*
+# 3. Clone fresh repo
+rm -rf /data/uni-openclaw-infra
+mkdir -p /data/uni-openclaw-infra
+cd /data/uni-openclaw-infra
+git clone https://github.com/YOUR_USERNAME/uni-openclaw-infra.git .
 
-# 4. Restore from latest backup
+# 4. Restore data
 ./scripts/restore.sh
 
-# 5. Start fresh
+# 5. Start
+chmod +x scripts/*.sh
 docker-compose up -d
 
 # 6. Verify
+sleep 10
 openclaw status
-```
-
-### Migrate to New VPS
-
-```bash
-# On old VPS:
-# 1. Create backup
-cd /data/uni-openclaw-infra
-./scripts/backup.sh
-
-# 2. Copy backup to new VPS
-scp /data/backups/openclaw/latest.tar.gz root@new-vps:/tmp/
-scp -r /data/uni-openclaw-infra root@new-vps:/data/
-
-# On new VPS:
-# 3. Restore
-cd /data/uni-openclaw-infra
-mkdir -p /data/backups/openclaw
-cp /tmp/latest.tar.gz /data/backups/openclaw/
-./scripts/restore.sh
-
-# 4. Install Docker/Coolify if needed
-# 5. Deploy
-docker-compose up -d
-```
-
----
-
-## Prevention Checklist
-
-Daily:
-- [ ] Check `/var/log/openclaw-backup.log` for errors
-- [ ] Verify Slack bot responds to test message
-
-Weekly:
-- [ ] Review disk usage: `df -h /data`
-- [ ] Check backup count: `ls /data/backups/openclaw/ | wc -l`
-- [ ] Review GitHub Actions for failed deploys
-
-Monthly:
-- [ ] Test restore procedure on staging
-- [ ] Rotate API keys if needed
-- [ ] Review and prune old session files
-
----
-
-## Escalation Path
-
-**Level 1 (Self-Service):**
-- Check this troubleshooting guide
-- Run diagnostic commands above
-- Try manual restart
-
-**Level 2 (Team Lead):**
-- Slack #ops channel
-- Share: `openclaw status` output
-- Share: relevant logs
-
-**Level 3 (External):**
-- OpenClaw Discord: https://discord.com/invite/clawd
-- OpenClaw GitHub Issues
-- Coolify Discord for deployment issues
-
----
-
-## Useful Aliases
-
-Add to `~/.bashrc` for quick access:
-
-```bash
-# OpenClaw shortcuts
-alias oc='cd /data/uni-openclaw-infra'
-alias ocl='docker logs openclaw-gateway --tail 50'
-alias ocs='openclaw status'
-alias ocb='./scripts/backup.sh'
-alias ocr='./scripts/restore.sh'
-alias ocp='docker-compose ps'
-alias ocrst='docker-compose restart'
-
-# Quick session check
-alias oc-sessions='openclaw sessions --json 2>/dev/null | grep -E "(sessionKey|totalTokens)"'
-
-# Quick backup check
-alias oc-backups='ls -lth /data/backups/openclaw/ | head -5'
-```
-
----
-
-## Log Locations
-
-| Log | Location | Purpose |
-|-----|----------|---------|
-| Backup log | `/var/log/openclaw-backup.log` | Backup job output |
-| Container logs | `docker logs openclaw-gateway` | OpenClaw runtime |
-| System logs | `/var/log/syslog` | System-level issues |
-| Coolify logs | Coolify dashboard | Deployment issues |
-
----
-
-## Common File Paths
-
-| File | Path |
-|------|------|
-| Main config | `/data/uni-openclaw-infra/config/openclaw.json` |
-| Docker compose | `/data/uni-openclaw-infra/docker-compose.yml` |
-| Backup script | `/data/uni-openclaw-infra/scripts/backup.sh` |
-| Restore script | `/data/uni-openclaw-infra/scripts/restore.sh` |
-| Backup storage | `/data/backups/openclaw/` |
-| Runtime data | `/data/.openclaw/` |
-| Agent sessions | `/data/.openclaw/agents/*/sessions/` |
-| QMD index | `/data/.openclaw/agents/*/qmd/` |
-
----
-
-## Quick Reference Card
-
-**Service Status:**
-```bash
 docker-compose ps
-openclaw status
-```
-
-**Restart:**
-```bash
-docker-compose restart
-```
-
-**View Logs:**
-```bash
-docker-compose logs -f
-```
-
-**Backup:**
-```bash
-./scripts/backup.sh
-```
-
-**Restore:**
-```bash
-./scripts/restore.sh
-```
-
-**Force New Session:**
-```
-/new
-```
-
-**Check Sessions:**
-```bash
-openclaw sessions --json
 ```
 
 ---
 
-**Last Updated:** 2026-02-26  
-**Maintained by:** UNI Marketing Agency  
-**Questions?** Check ARCHITECTURE.md for system design details
+### Rollback to Previous Version
+
+```bash
+cd /data/uni-openclaw-infra
+
+# Check git history
+git log --oneline -10
+
+# Rollback to specific commit
+git checkout <commit-hash>
+
+# Or rollback one step
+git checkout HEAD~1
+
+# Restart
+docker-compose restart
+
+# If working, commit the rollback
+git checkout -b rollback-$(date +%Y%m%d)
+git checkout main
+git reset --hard <working-commit>
+git push -f origin main  # Careful! Forces push
+```
+
+---
+
+## 📞 Escalation Path
+
+### Level 1: Self-Service (You)
+- Check this troubleshooting guide
+- Check logs with `docker-compose logs`
+- Try restarting: `docker-compose restart`
+
+### Level 2: Team Lead (Sean)
+- If data loss suspected
+- If security issue
+- If multiple systems affected
+
+### Level 3: OpenClaw Community
+- Discord: https://discord.com/invite/clawd
+- GitHub Issues: https://github.com/openclaw/openclaw
+
+### Level 4: Infrastructure Provider
+- Coolify support: https://coolify.io/docs
+- VPS provider: Check server status
+
+---
+
+## 📝 Log Locations
+
+| Log | Location | Rotation |
+|-----|----------|----------|
+| OpenClaw gateway | `docker logs openclaw-gateway` | Docker managed |
+| Backup script | `/var/log/openclaw-backup.log` | Manual |
+| Cron jobs | `/var/log/syslog` or `/var/log/cron` | System managed |
+| System | `journalctl -u docker` | System managed |
+
+---
+
+## 🎯 Quick Fixes Cheat Sheet
+
+| Problem | Command |
+|---------|---------|
+| No response | `docker-compose restart` |
+| Wrong config | `git pull && docker-compose restart` |
+| Session stuck | Type `/new` in chat |
+| Memory not loading | `docker-compose restart` |
+| Backup failing | `./scripts/backup.sh` (run manually) |
+| Restore needed | `./scripts/restore.sh` |
+| Full reset | `docker-compose down && docker-compose up -d` |
+| Check status | `docker-compose ps && openclaw status` |
+| View logs | `docker-compose logs -f` |
+
+---
+
+## ⚠️ Common Mistakes
+
+1. **Editing files directly on VPS without git**
+   - Changes lost on next deploy
+   - Always: edit → commit → push
+
+2. **Forgetting to restart after config change**
+   - Config only loads on start
+   - Always restart container
+
+3. **Running backup while container is down**
+   - Backup will fail
+   - Always check container status first
+
+4. **Manual edits to /data/.openclaw/**
+   - Will be overwritten on restore
+   - Edit files in git repo instead
+
+5. **Not checking disk space**
+   - Backups fail silently when disk full
+   - Monitor with `df -h`
+
+---
+
+*Remember: When in doubt, check the logs. Logs tell the truth.*

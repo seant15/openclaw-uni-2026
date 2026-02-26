@@ -1,395 +1,483 @@
-# OpenClaw Infrastructure Architecture
+# OpenClaw System Architecture
 
-## Overview
-
-This document explains how the OpenClaw infrastructure is designed, why we made these choices, and how data flows through the system.
-
----
-
-## System Design Philosophy
-
-**Goal**: Zero-downtime deployments, automatic data persistence, and simple disaster recovery.
-
-**Principles**:
-1. **Infrastructure as Code**: All configs in Git
-2. **Immutable Deployments**: Docker containers, not native processes
-3. **Automatic Recovery**: Backup/restore on every deploy
-4. **Layered Persistence**: Hot data in container, warm data in backups, cold data in Git
+**For:** Future team members and troubleshooting reference  
+**Last Updated:** 2026-02-26  
+**Maintained by:** UNI Marketing / Sean Tan
 
 ---
 
-## Architecture Diagram
+## Executive Summary
+
+We run **OpenClaw** (AI agent system) on a VPS via **Coolify** (PaaS). This document explains:
+1. How the system is structured
+2. Where data lives
+3. How we prevent data loss
+4. How memory/conversations persist across sessions
+
+---
+
+## High-Level Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      COOLIFY VPS                             │
-│                                                              │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │           GitHub Actions (CI/CD)                      │  │
-│  │  • Push to main → Auto-deploy                        │  │
-│  │  • SSH into VPS → Pull configs                       │  │
-│  │  • Restart containers                                │  │
-│  └────────────────────┬─────────────────────────────────┘  │
-│                       │ SSH                                 │
-│  ┌────────────────────▼─────────────────────────────────┐  │
-│  │              Docker Compose                           │  │
-│  │                                                        │  │
-│  │  ┌──────────────────────────────────────────────┐    │  │
-│  │  │    OpenClaw Container (official image)        │    │  │
-│  │  │                                                │    │  │
-│  │  │  ┌──────────────────────────────────────────┐ │    │  │
-│  │  │  │        entrypoint.sh (auto-restore)       │ │    │  │
-│  │  │  │  1. Check for backup                      │ │    │  │
-│  │  │  │  2. Extract to /home/node/.openclaw      │ │    │  │
-│  │  │  │  3. Start gateway                         │ │    │  │
-│  │  │  └──────────────────────────────────────────┘ │    │  │
-│  │  │                                                │    │  │
-│  │  │  Volumes:                                     │    │  │
-│  │  │  • openclaw-data → /data/.openclaw (bind)    │    │  │
-│  │  │  • config/openclaw.json → config (ro)        │    │  │
-│  │  │  • workspace/ → workspace (rw)               │    │  │
-│  │  └──────────────────────────────────────────────┘    │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                       │                                     │
-│  ┌────────────────────▼─────────────────────────────────┐  │
-│  │              Persistent Storage                       │  │
-│  │                                                        │  │
-│  │  /data/.openclaw/           (main data)               │  │
-│  │  ├── agents/                (sessions, qmd)           │  │
-│  │  └── openclaw.json          (runtime config)         │  │
-│  │                                                        │  │
-│  │  /data/uni-openclaw-infra/    (git-tracked)          │  │
-│  │  ├── config/openclaw.json   (source of truth)        │  │
-│  │  ├── workspace/agents/      (base docs)              │  │
-│  │  └── workspace/memory/      (daily logs)             │  │
-│  │                                                        │  │
-│  │  /data/backups/openclaw/      (tar.gz archives)      │  │
-│  │  └── openclaw_backup_*.tar.gz (daily snapshots)      │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                        COOLIFY VPS                              │
+│                   (194.238.31.45)                               │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────────┐      ┌─────────────────────────────┐     │
+│  │   Docker Compose  │      │   Persistent Volume         │     │
+│  │   (Coolify)       │      │   /data/.openclaw           │     │
+│  │                   │      │                             │     │
+│  │  ┌─────────────┐  │      │  • Agent configs            │     │
+│  │  │ OpenClaw    │  │      │  • Session history          │     │
+│  │  │ Container   │──┼──────│  • QMD embeddings           │     │
+│  │  │             │  │      │  • Memory files             │     │
+│  │  └─────────────┘  │      │                             │     │
+│  └──────────────────┘      └─────────────────────────────┘     │
+│           │                                                      │
+│           │  Auto-restore on boot                                 │
+│           ▼                                                      │
+│  ┌──────────────────┐      ┌─────────────────────────────┐     │
+│  │   Git Repo        │      │   Backup Storage            │     │
+│  │   (GitHub)        │      │   /data/backups/openclaw    │     │
+│  │                   │      │                             │     │
+│  │  • Configs        │◄─────│  • Daily backups            │     │
+│  │  • Workspace      │      │  • Pre-deploy snapshots     │     │
+│  │  • Scripts        │      │                             │     │
+│  └──────────────────┘      └─────────────────────────────┘     │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │  GitHub Actions
+                              ▼
+                    ┌──────────────────┐
+                    │  Auto-deploy     │
+                    │  on git push     │
+                    └──────────────────┘
 ```
 
 ---
 
-## Data Persistence Strategy
+## Data Flow: How It All Connects
 
-### Three-Layer Persistence
-
-| Layer | Location | Purpose | Persistence |
-|-------|----------|---------|-------------|
-| **Hot** | Container volumes | Runtime state | Survives container restart |
-| **Warm** | Backup archives | Disaster recovery | 30 days retention |
-| **Cold** | Git repository | Config history | Permanent (Git history) |
-
-### What Gets Persisted Where
+### 1. Configuration Flow
 
 ```
-Git Repository (uni-openclaw-infra)
-├── config/openclaw.json          ← Agent definitions, models, channels
-├── workspace/agents/*/SOUL.md    ← Agent personalities
-├── workspace/agents/*/TOOLS.md   ← Agent capabilities
-├── workspace/memory/2026-*.md    ← Daily memory logs (optional)
-└── docker-compose.yml            ← Deployment configuration
-
-Backup Archives (/data/backups/openclaw/)
-├── agents/*/sessions/*.jsonl     ← Conversation history
-├── agents/*/qmd/                 ← Vector embeddings (QMD)
-└── workspace/memory/*.md         ← All memory files
-
-Runtime Data (/data/.openclaw/)
-├── agents/clover/sessions/       ← Current session data
-├── agents/clover/qmd/            ← QMD index (rebuilt from backup)
-└── openclaw.json                 ← Runtime config (from Git)
+GitHub Repo ──► VPS (/data/uni-openclaw-infra/) ──► Coolify ──► Container
+     │                                                    │
+     │                                                    ▼
+     │                                            Mounted as read-only
+     │                                            or read-write volumes
+     │                                                    │
+     └────────────────────────────────────────────────────┘
+              Changes trigger auto-deploy via GitHub Actions
 ```
+
+### 2. Conversation & Memory Flow
+
+```
+User Message ──► OpenClaw Gateway ──► LLM (Kimi/OpenAI/Anthropic)
+                      │
+                      ▼
+              Session JSONL file
+              (ephemeral, resets daily)
+                      │
+                      ▼
+              QMD Vector Search
+              (persistent embeddings)
+                      │
+                      ▼
+              MEMORY.md / memory/*.md
+              (persistent files)
+```
+
+**Key Point:** Sessions reset daily, but **QMD embeddings** and **memory files** persist forever.
+
+---
+
+## Storage Locations (Critical for Troubleshooting)
+
+### Persistent Data (Survives Restarts)
+
+| Data Type | Location | Backup? | Notes |
+|-----------|----------|---------|-------|
+| **Agent configs** | `/data/.openclaw/agents/` | ✅ Yes | Agent definitions, auth |
+| **Session history** | `/data/.openclaw/agents/*/sessions/` | ✅ Yes | JSONL conversation logs |
+| **QMD embeddings** | `/data/.openclaw/agents/*/qmd/` | ✅ Yes | Vector memory index |
+| **OpenClaw config** | `/data/.openclaw/openclaw.json` | ✅ Yes | Main configuration |
+| **Memory files** | `/data/workspace/memory/` | ✅ Yes | Daily logs |
+| **Base documents** | `/data/workspace/agents/` | ✅ Yes | SOUL.md, etc. |
+
+### Ephemeral Data (Lost on Container Restart)
+
+| Data Type | Location | Backup? | Notes |
+|-----------|----------|---------|-------|
+| **Runtime sessions** | Container memory | ❌ No | Auto-reset daily anyway |
+| **Temp files** | `/tmp/` | ❌ No | Not needed |
+
+### Git-Tracked Configs (Source of Truth)
+
+| Data Type | Location | Purpose |
+|-----------|----------|---------|
+| **Config** | `config/openclaw.json` | Agent definitions, models, channels |
+| **Agent docs** | `workspace/agents/` | SOUL.md, TOOLS.md, etc. |
+| **Memory** | `workspace/memory/` | Daily logs, curated memories |
+| **Scripts** | `scripts/` | Backup/restore automation |
 
 ---
 
 ## Session Management Strategy
 
-### Why Daily Session Resets?
+### The Problem
 
-**Problem**: LLM context windows are finite. Unbounded sessions = token bloat = higher costs + slower responses.
+LLMs have limited context windows. Without management:
+- Sessions grow indefinitely
+- Token costs explode
+- Context becomes noisy
 
-**Solution**: Hybrid reset strategy with QMD for long-term memory.
+### Our Solution: Hybrid Strategy
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Session Lifecycle                         │
+│                    SESSION LIFECYCLE                         │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
-│  Day 1 (Active Session)                                     │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │ User: "Set up Google Ads integration"                │  │
-│  │                                                      │  │
-│  │ Agent: [Completes task, writes to MEMORY.md]        │  │
-│  │                                                      │  │
-│  │ QMD: Embeds "Google Ads setup complete"              │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                         │                                    │
-│                         ▼ 4:00 AM UTC                        │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │ Session Reset (Automatic)                            │  │
-│  │ • Old session archived to .jsonl                     │  │
-│  │ • New session starts fresh                           │  │
-│  │ • System prompt reinjected                           │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                         │                                    │
-│  Day 2 (New Session)    │                                    │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │ User: "How's the Google Ads integration?"            │  │
-│  │                                                      │  │
-│  │ QMD Search: [Finds "Google Ads setup complete"]      │  │
-│  │                                                      │  │
-│  │ Agent: "The integration was completed yesterday..."  │  │
-│  └──────────────────────────────────────────────────────┘  │
+│  User sends message ──► Check session age                    │
+│                              │                               │
+│                              ▼                               │
+│                    ┌─────────────────┐                      │
+│                    │  Is it after    │                      │
+│                    │  4 AM UTC?      │                      │
+│                    └────────┬────────┘                      │
+│                             │                               │
+│              ┌──────────────┼──────────────┐               │
+│              │                              │               │
+│              ▼                              ▼               │
+│        ┌───────────┐                 ┌───────────┐         │
+│        │  YES      │                 │    NO     │         │
+│        │           │                 │           │         │
+│        ▼           │                 ▼           │         │
+│  ┌─────────────┐   │           ┌─────────────┐  │         │
+│  │ Reset to    │   │           │ Continue    │  │         │
+│  │ new session │   │           │ existing    │  │         │
+│  │ (fresh ID)  │   │           │ session     │  │         │
+│  └──────┬──────┘   │           └──────┬──────┘  │         │
+│         │          │                  │         │         │
+│         └──────────┴──────────────────┘         │         │
+│                    │                            │         │
+│                    ▼                            │         │
+│         ┌─────────────────────┐                │         │
+│         │ QMD Search Enabled  │                │         │
+│         │ (Vector Memory)     │                │         │
+│         └──────────┬──────────┘                │         │
+│                    │                           │         │
+│                    ▼                           │         │
+│         ┌─────────────────────┐               │         │
+│         │ Search across ALL   │               │         │
+│         │ prior sessions      │               │         │
+│         └──────────┬──────────┘               │         │
+│                    │                          │         │
+│                    ▼                          │         │
+│         ┌─────────────────────┐              │         │
+│         │ Inject relevant     │              │         │
+│         │ memories into       │              │         │
+│         │ context             │              │         │
+│         └──────────┬──────────┘              │         │
+│                    │                         │         │
+│                    ▼                         │         │
+│         ┌─────────────────────┐             │         │
+│         │ Respond with        │             │         │
+│         │ context + memory    │             │         │
+│         └─────────────────────┘             │         │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Reset Policy by Context
+### Session Types
 
-| Context Type | Reset Policy | Rationale |
-|--------------|--------------|-----------|
-| **Direct Messages** | Daily at 4 AM UTC | Clean slate for daily work |
-| **Slack Threads** | Daily at 4 AM UTC | Task threads don't need longevity |
-| **Group Chats** | Idle 2 hours | Ephemeral, reduce noise |
-| **Short Tasks** | `/new` on demand | One-off = fresh session |
-| **Long Projects** | Stay in session | Multi-day work preserved |
+| Type | Reset Policy | Use Case |
+|------|--------------|----------|
+| **Direct messages** | Daily 4 AM UTC | Main work with agents |
+| **Slack threads** | Daily 4 AM UTC | Task-specific discussions |
+| **Group chats** | Idle 2h | Ephemeral team chat |
+| **Cron jobs** | Per-run | Scheduled tasks (always fresh) |
 
-### QMD: The Memory Bridge
+### Memory Persistence Across Sessions
 
-QMD (Queryable Memory Database) vectorizes your workspace files:
+Even when a session resets, we maintain continuity via:
 
-```
-User Query
-    │
-    ▼
-┌─────────────────┐
-│  memory_search  │  ← Searches MEMORY.md + memory/*.md
-│  (vector + FTS) │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Relevant       │  ← Top 6 matches injected into context
-│  Context        │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  LLM Response   │  ← Informed by long-term memory
-└─────────────────┘
-```
+1. **QMD Vector Search** (automatic)
+   - Embeddings of all conversations
+   - Semantic search across history
+   - Injected into context when relevant
+
+2. **MEMORY.md** (manual)
+   - Curated long-term memory
+   - You tell us what to remember
+   - Loaded on every session start
+
+3. **memory/*.md** (daily logs)
+   - Automatic daily summaries
+   - Raw conversation logs
+   - Searchable via `memory_search` tool
 
 ---
 
-## Redeployment Flow
+## Security & Data Protection
 
-### Normal Deployment (Config Change)
+### How We Prevent Data Loss
 
+#### Layer 1: Persistent Storage
+- `/data` is on a separate disk (`/dev/sda1`)
+- Not affected by container restarts
+- Survives OS reinstalls (if `/data` preserved)
+
+#### Layer 2: Daily Backups
 ```
-Developer
-    │ git push
-    ▼
-GitHub Actions
-    │ SSH + docker-compose up
-    ▼
-Coolify VPS
-    │
-    ├── Pull new configs ──────┐
-    │                           │
-    └── Restart container       │
-            │                   │
-            ▼                   │
-    ┌───────────────┐           │
-    │ entrypoint.sh │           │
-    │ • No backup   │           │
-    │   needed      │           │
-    │ • Start fresh │           │
-    └───────┬───────┘           │
-            │                   │
-            ▼                   │
-    ┌───────────────┐           │
-    │ Load configs  │◄──────────┘
-    │ from Git      │
-    └───────┬───────┘
-            │
-            ▼
-    OpenClaw Gateway Ready
+Schedule: Every day at 3:00 AM UTC
+Location: /data/backups/openclaw/
+Retention: Last 10 backups
+Format: Compressed tar.gz
+Contents: Everything in /data/.openclaw + workspace
 ```
 
-### Disaster Recovery (Data Loss)
+#### Layer 3: Git Version Control
+- All configs tracked in git
+- Changes are auditable
+- Rollback to any previous version
 
+#### Layer 4: Auto-Restore on Boot
 ```
-VPS Reboot / Container Failure
-    │
-    ▼
-Coolify Restarts Container
-    │
-    ▼
-┌─────────────────────────┐
-│    entrypoint.sh        │
-│                         │
-│  1. Check /data/.openclaw│
-│     → Empty or missing   │
-│                         │
-│  2. Find latest backup   │
-│     → /data/backups/...  │
-│                         │
-│  3. Extract backup       │
-│     → Restore sessions   │
-│     → Restore QMD        │
-│                         │
-│  4. Start gateway        │
-└───────────┬─────────────┘
-            │
-            ▼
-    Sessions Restored
-    Memory Preserved
+Container Starts
+      │
+      ▼
+entrypoint.sh runs
+      │
+      ▼
+Check for backup ──► Restore if exists ──► Start OpenClaw
 ```
 
----
-
-## Security Model
-
-### Data Protection
-
-| Layer | Protection |
-|-------|------------|
-| **Git Repository** | Private repo, no secrets committed |
-| **API Keys** | Coolify environment variables only |
-| **Backups** | Stored on VPS disk (not cloud) |
-| **SSH Keys** | GitHub Secrets, VPS authorized_keys |
-| **Gateway Token** | Environment variable, not in Git |
-
-### What NOT to Commit to Git
-
-```
-# .gitignore
-.env
-.openclaw/
-/data/
-/backups/
-*.key
-*.pem
-node_modules/
-```
-
-### Secrets Flow
-
-```
-GitHub Secrets ──► GitHub Actions ──► SSH to VPS ──► Coolify Env ──► Container
-     │                                                            │
-     │ (Never in code)                                            │
-     └────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Troubleshooting Architecture
-
-### If Auto-Restore Fails
+### What Gets Backed Up
 
 ```bash
-# Check if backup exists
-ls -la /data/backups/openclaw/
+# Backup includes:
+/data/.openclaw/agents/        # All agent data
+/data/.openclaw/openclaw.json  # Main config
+/data/workspace/MEMORY.md      # Long-term memory
+/data/workspace/memory/        # Daily logs
+/data/workspace/agents/        # Agent base docs
+```
 
-# Check container logs
-docker logs openclaw-gateway
+### What Does NOT Get Backed Up
 
+- Runtime session state (intentional — ephemeral)
+- Temporary files
+- Logs (separate log rotation)
+
+---
+
+## Redeployment Scenarios
+
+### Scenario 1: Config Change (Git Push)
+
+```
+You: Edit file → git commit → git push
+          │
+          ▼
+GitHub Actions: Deploy to VPS
+          │
+          ▼
+Coolify: Rolling update (zero downtime)
+          │
+          ▼
+New container: Starts with new config
+          │
+          ▼
+OpenClaw: Running with updated config
+```
+
+**Data Status:** ✅ No data loss (config only change)
+
+### Scenario 2: VPS Restart
+
+```
+VPS: Reboot
+  │
+  ▼
+Coolify: Auto-start services
+  │
+  ▼
+OpenClaw Container: Start
+  │
+  ▼
+entrypoint.sh: Check for backup
+  │
+  ▼
+Restore: From /data/backups/openclaw/latest.tar.gz
+  │
+  ▼
+OpenClaw: Running with restored data
+```
+
+**Data Status:** ✅ Fully restored from backup
+
+### Scenario 3: Complete Data Loss (Worst Case)
+
+```
+Disaster: /data partition corrupted
+  │
+  ▼
+Restore from backup:
+  cd /data/uni-openclaw-infra
+  ./scripts/restore.sh /data/backups/openclaw/openclaw_backup_20260226_120000.tar.gz
+  │
+  ▼
+Restart: docker-compose restart
+  │
+  ▼
+OpenClaw: Running with restored data
+```
+
+**Data Status:** ✅ Restored to last backup (max 24h loss)
+
+### Scenario 4: Git Repo Corruption
+
+```
+Problem: Accidental git reset or repo corruption
+  │
+  ▼
+Solution: Clone fresh from GitHub
+  git clone https://github.com/YOUR_REPO/uni-openclaw-infra.git
+  │
+  ▼
+Restore data: ./scripts/restore.sh
+  │
+  ▼
+System: Back online with configs + data
+```
+
+**Data Status:** ✅ Configs from git, data from backup
+
+---
+
+## Troubleshooting Quick Reference
+
+### "Agent doesn't remember our conversation"
+
+**Check:**
+1. Is QMD enabled? `openclaw config get memory.backend`
+2. Are embeddings updating? Check `/data/.openclaw/agents/clover/qmd/`
+3. Try manual search: Use `memory_search` tool with your query
+
+**Fix:**
+- QMD re-indexes every 15 minutes
+- Force update: Restart container
+
+### "Sessions not resetting daily"
+
+**Check:**
+1. Config loaded? `openclaw config get session.resetByType`
+2. Timezone correct? Check VPS time: `date`
+3. Gateway restarted after config change?
+
+**Fix:**
+```bash
+# Restart to reload config
+docker-compose restart
+```
+
+### "Lost all data after redeploy"
+
+**Check:**
+1. Was backup created? `ls -la /data/backups/openclaw/`
+2. Did entrypoint.sh run? `docker logs openclaw-gateway | head -20`
+3. Volume mounted correctly? `docker inspect openclaw-gateway | grep -A5 Mounts`
+
+**Fix:**
+```bash
 # Manual restore
+cd /data/uni-openclaw-infra
+./scripts/restore.sh
+```
+
+### "Can't access OpenClaw gateway"
+
+**Check:**
+1. Container running? `docker ps | grep openclaw`
+2. Port accessible? `curl http://localhost:18789/status`
+3. Firewall blocking? `ufw status` or `iptables -L`
+
+**Fix:**
+```bash
+# Check logs
+docker-compose logs -f
+
+# Restart
+docker-compose down
+docker-compose up -d
+```
+
+---
+
+## Commands Reference
+
+### Daily Operations
+
+```bash
+# Check status
+openclaw status
+docker-compose ps
+
+# View logs
+docker-compose logs -f
+
+# Manual backup
+./scripts/backup.sh
+
+# Check backup list
+ls -lth /data/backups/openclaw/
+```
+
+### Emergency Operations
+
+```bash
+# Restore from backup
+./scripts/restore.sh [backup-file.tar.gz]
+
+# Full reset (dangerous)
+docker-compose down
+rm -rf /data/.openclaw
 ./scripts/restore.sh
 
-# Verify data
-ls -la /data/.openclaw/agents/
-```
-
-### If QMD Search Fails
-
-```bash
-# Check QMD index
-ls -la /data/.openclaw/agents/clover/qmd/
-
-# Rebuild QMD manually
-qmd update /data/workspace
-
-# Check QMD config in openclaw.json
-```
-
-### If Sessions Don't Reset
-
-```bash
-# Check session config
-grep -A 10 '"session"' /data/uni-openclaw-infra/config/openclaw.json
-
-# Check current sessions
-openclaw sessions --json
-
-# Force reset
-/new
+# Complete rebuild
+rm -rf /data/uni-openclaw-infra
+git clone <repo> /data/uni-openclaw-infra
+./scripts/restore.sh
 ```
 
 ---
 
-## Future Considerations
+## Contact & Escalation
 
-### Scaling Horizontally
-
-If you need multiple VPS instances:
-
-```
-                    Load Balancer
-                         │
-         ┌───────────────┼───────────────┐
-         ▼               ▼               ▼
-    ┌─────────┐    ┌─────────┐    ┌─────────┐
-    │ VPS #1  │    │ VPS #2  │    │ VPS #3  │
-    │ OpenClaw│    │ OpenClaw│    │ OpenClaw│
-    └────┬────┘    └────┬────┘    └────┬────┘
-         │               │               │
-         └───────────────┼───────────────┘
-                         ▼
-              ┌─────────────────┐
-              │ Shared Storage  │
-              │ (NFS/EFS)       │
-              │ /data/.openclaw │
-              └─────────────────┘
-```
-
-### Monitoring & Alerting
-
-Future additions:
-- Prometheus metrics from OpenClaw
-- Grafana dashboard for token usage
-- PagerDuty for backup failures
-- Uptime monitoring for gateway
+| Issue | Contact | Notes |
+|-------|---------|-------|
+| System down | Sean Tan | Primary owner |
+| Config changes | GitHub PR | Review before merge |
+| Data loss | Restore from backup | Last backup max 24h old |
+| OpenClaw bugs | OpenClaw Discord | Community support |
 
 ---
 
-## Glossary
+## Document Maintenance
 
-| Term | Meaning |
-|------|---------|
-| **QMD** | Queryable Memory Database — vector search for workspace files |
-| **Session** | A conversation context between user and agent |
-| **Reset** | Starting a new session (clears short-term context) |
-| **Compaction** | Summarizing old session context to save tokens |
-| **Pruning** | Removing old tool results from context |
-| **Coolify** | Self-hosted PaaS for Docker deployments |
-| **Entrypoint** | Script that runs when container starts |
+**Update this doc when:**
+- Architecture changes
+- New agents added
+- Backup strategy changes
+- New failure modes discovered
+
+**Review schedule:** Quarterly
 
 ---
 
-## Contact & Resources
-
-- **OpenClaw Docs**: https://docs.openclaw.ai
-- **Coolify Docs**: https://coolify.io/docs
-- **This Repo**: `uni-openclaw-infra`
-- **Backup Location**: `/data/backups/openclaw/`
-- **Live Config**: `/data/uni-openclaw-infra/config/openclaw.json`
-
----
-
-*Last updated: 2026-02-26*  
-*Maintained by: UNI Marketing Agency*
+*This document ensures that even if the entire team changes, the next person can understand and troubleshoot the system within 30 minutes.*
