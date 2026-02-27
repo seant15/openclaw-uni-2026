@@ -1,17 +1,19 @@
 version: '3.8'
 
 # OpenClaw Deployment for Coolify
-# This references the official OpenClaw image with your custom configs
+# Builds OpenClaw from source with your custom configs
 
 services:
   openclaw-gateway:
-    image: openclaw/openclaw:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: openclaw-gateway
     restart: unless-stopped
     
     environment:
       # Core OpenClaw settings
-      HOME: /home/node
+      HOME: /home/openclaw
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-uni-random-token}
       
       # Model API Keys (passed from Coolify env)
@@ -25,17 +27,17 @@ services:
       SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
       
       # Persistence
-      OPENCLAW_CONFIG_DIR: /home/node/.openclaw
-      OPENCLAW_WORKSPACE_DIR: /home/node/.openclaw/workspace
+      OPENCLAW_CONFIG_DIR: /home/openclaw/.openclaw
+      OPENCLAW_WORKSPACE_DIR: /home/openclaw/.openclaw/workspace
       
     volumes:
       # Persistent data (survives redeploys)
-      - openclaw-data:/home/node/.openclaw
+      - openclaw-data:/home/openclaw/.openclaw
       
       # Your tracked configs (from this repo)
-      - ./config/openclaw.json:/home/node/.openclaw/openclaw.json:ro
-      - ./workspace/agents:/home/node/.openclaw/workspace/agents:ro
-      - ./workspace/memory:/home/node/.openclaw/workspace/memory:rw
+      - ./config/openclaw.json:/home/openclaw/.openclaw/openclaw.json:ro
+      - ./workspace/agents:/home/openclaw/.openclaw/workspace/agents:ro
+      - ./workspace/memory:/home/openclaw/.openclaw/workspace/memory:rw
       
       # Backup/restore scripts
       - ./scripts:/opt/openclaw/scripts:ro
@@ -45,19 +47,11 @@ services:
       - "${OPENCLAW_BRIDGE_PORT:-18790}:18790"
       
     healthcheck:
-      test: ["CMD", "openclaw", "status"]
+      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
-      
-    # Pre-start: restore from backup if exists
-    entrypoint: ["/opt/openclaw/scripts/entrypoint.sh"]
-    
-    command: >
-      node dist/index.js gateway
-      --bind ${OPENCLAW_BIND:-lan}
-      --port 18789
+      start_period: 60s
 
 volumes:
   openclaw-data:
@@ -66,7 +60,3 @@ volumes:
       type: none
       o: bind
       device: /data/.openclaw
-
-networks:
-  default:
-    name: openclaw-network

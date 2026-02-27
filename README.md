@@ -42,8 +42,9 @@ This repository contains infrastructure-as-code for deploying OpenClaw (AI agent
 git clone https://github.com/YOUR_USERNAME/uni-openclaw-infra.git /data/uni-openclaw-infra
 cd /data/uni-openclaw-infra
 
-# Run automated setup
-./setup.sh
+# Copy environment template
+cp .env.example .env
+vim .env  # Fill in your API keys
 ```
 
 ### 2. Configure Environment
@@ -53,21 +54,32 @@ cd /data/uni-openclaw-infra
 vim .env
 
 # Required:
-# - OPENCLAW_GATEWAY_TOKEN
-# - KIMI_API_KEY (or other model keys)
-# - Slack tokens (if using Slack)
+# - OPENCLAW_GATEWAY_TOKEN (generate a random secure token)
+# - KIMI_API_KEY (or OPENAI_API_KEY / ANTHROPIC_API_KEY)
+# - Slack tokens (if using Slack integration)
 ```
 
 ### 3. Deploy
 
+**Option A: Local Docker (Testing)**
 ```bash
-# Start services
-docker-compose up -d
+# Build and start
+docker-compose up -d --build
 
 # Verify
 docker-compose ps
-openclaw status
+curl http://localhost:18789/health
 ```
+
+**Option B: Coolify Deployment (Production)**
+```bash
+# Push to GitHub (triggers Coolify auto-deploy)
+git add .
+git commit -m "Configure environment"
+git push origin main
+```
+
+**Note:** OpenClaw is built from source during deployment. First build takes ~3-5 minutes.
 
 ---
 

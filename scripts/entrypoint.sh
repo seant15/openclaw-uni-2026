@@ -1,45 +1,63 @@
-#!/bin/bash
-# OpenClaw Entrypoint Script
-# Runs before OpenClaw starts - handles backup restore on redeploy
+#!/bin/sh
+# OpenClaw Container Entrypoint
+# Handles auto-restore from backup on container start
 
 set -e
 
-echo "🦞 OpenClaw Gateway Startup"
-echo "=========================="
+echo "=========================================="
+echo "OpenClaw Container Starting..."
+echo "=========================================="
 
-# Check if we have a backup to restore
-BACKUP_DIR="/data/backups/openclaw"
-LATEST_BACKUP=$(ls -t "$BACKUP_DIR"/openclaw_backup_*.tar.gz 2>/dev/null | head -1 || true)
+# Ensure directories exist
+mkdir -p /home/openclaw/.openclaw/workspace/agents
+mkdir -p /home/openclaw/.openclaw/workspace/memory
+mkdir -p /data/backups/openclaw
 
-if [ -n "$LATEST_BACKUP" ] && [ -f "$LATEST_BACKUP" ]; then
-    echo "📦 Found backup: $(basename $LATEST_BACKUP)"
-    echo "🔄 Restoring..."
+# Check for backup to restore
+BACKUP_FILE="/data/backups/openclaw/latest.tar.gz"
+
+if [ -f "$BACKUP_FILE" ]; then
+    echo "Found backup: $BACKUP_FILE"
+    echo "Restoring data..."
     
     # Extract backup to temp location first
-    TMP_DIR=$(mktemp -d)
-    tar -xzf "$LATEST_BACKUP" -C "$TMP_DIR"
+    TEMP_DIR=$(mktemp -d)
+    tar -xzf "$BACKUP_FILE" -C "$TEMP_DIR"
     
-    # Merge restored data with current (don't overwrite tracked configs)
-    if [ -d "$TMP_DIR/data/.openclaw/agents" ]; then
-        cp -r "$TMP_DIR"/data/.openclaw/agents/* /home/node/.openclaw/agents/ 2>/dev/null || true
+    # Copy data files (preserve git-tracked configs)
+    if [ -d "$TEMP_DIR/data/.openclaw/agents" ]; then
+        cp -r "$TEMP_DIR/data/.openclaw/agents"/* /home/openclaw/.openclaw/workspace/agents/ 2>/dev/null || true
     fi
     
-    if [ -d "$TMP_DIR/data/workspace/memory" ]; then
-        cp -r "$TMP_DIR"/data/workspace/memory/* /home/node/.openclaw/workspace/memory/ 2>/dev/null || true
+    if [ -d "$TEMP_DIR/data/.openclaw/memory" ]; then
+        cp -r "$TEMP_DIR/data/.openclaw/memory"/* /home/openclaw/.openclaw/workspace/memory/ 2>/dev/null || true
+    fi
+    
+    # Copy qmd (vector memory) if exists
+    if [ -d "$TEMP_DIR/data/.openclaw/qmd" ]; then
+        cp -r "$TEMP_DIR/data/.openclaw/qmd" /home/openclaw/.openclaw/ 2>/dev/null || true
+    fi
+    
+    # Copy sessions if exists
+    if [ -d "$TEMP_DIR/data/.openclaw/sessions" ]; then
+        cp -r "$TEMP_DIR/data/.openclaw/sessions" /home/openclaw/.openclaw/ 2>/dev/null || true
     fi
     
     # Cleanup
-    rm -rf "$TMP_DIR"
-    echo "✅ Restore complete"
+    rm -rf "$TEMP_DIR"
+    
+    echo "Restore complete!"
 else
-    echo "ℹ️  No backup found, starting fresh"
+    echo "No backup found at $BACKUP_FILE"
+    echo "Starting with fresh data directory..."
 fi
 
-# Ensure directories exist
-mkdir -p /home/node/.openclaw/{agents,workspace/{agents,memory}}
+# Set proper ownership
+chown -R openclaw:openclaw /home/openclaw/.openclaw
 
-# Set proper permissions
-chown -R node:node /home/node/.openclaw
+echo "=========================================="
+echo "Starting OpenClaw Gateway..."
+echo "=========================================="
 
-echo "🚀 Starting OpenClaw Gateway..."
+# Execute the main command
 exec "$@"
