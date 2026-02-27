@@ -1,0 +1,55 @@
+{
+  "agents": {
+    "clover": {
+      "name": "Clover",
+      "emoji": "🍀",
+      "role": "Management & Operations",
+      "model": "kimi/kimi-k2.5"
+    },
+    "writer": {
+      "name": "Writer",
+      "emoji": "✍️",
+      "role": "Content Creator",
+      "model": "kimi/kimi-k2.5"
+    },
+    "mary": {
+      "name": "Mary",
+      "emoji": "📡",
+      "role": "Communications",
+      "model": "kimi/kimi-k2.5"
+    },
+    "openclaw": {
+      "name": "OpenClaw",
+      "emoji": "🛡️",
+      "role": "Monitoring & Performance",
+      "model": "kimi/kimi-k2.5"
+    },
+    "nexus": {
+      "name": "Nexus",
+      "emoji": "🔗",
+      "role": "Integrations",
+      "model": "kimi/kimi-k2.5"
+    },
+    "kimi": {
+      "name": "Kimi",
+      "emoji": "🧪",
+      "role": "Technology & R&D",
+      "model": "kimi/kimi-k2.5"
+    },
+    "atlas": {
+      "name": "Atlas",
+      "emoji": "🎯",
+      "role": "Strategic Analysis",
+      "model": "kimi/kimi-k2.5"
+    }
+  },
+  "default_agent": "clover",
+  "channels": {
+    "slack": {
+      "enabled": true,
+      "bot_token": "${SLACK_BOT_TOKEN}",
+      "app_token": "${SLACK_APP_TOKEN}",
+      "signing_secret": "${SLACK_SIGNING_SECRET}"
+    }
+  }
+}
