@@ -2,43 +2,43 @@
   "agents": {
     "clover": {
       "name": "Clover",
-      "emoji": "🍀",
+      "emoji": "\ud83c\udf40",
       "role": "Management & Operations",
       "model": "kimi/kimi-k2.5"
     },
     "writer": {
       "name": "Writer",
-      "emoji": "✍️",
+      "emoji": "\u270d\ufe0f",
       "role": "Content Creator",
       "model": "kimi/kimi-k2.5"
     },
     "mary": {
       "name": "Mary",
-      "emoji": "📡",
+      "emoji": "\ud83d\udce1",
       "role": "Communications",
       "model": "kimi/kimi-k2.5"
     },
     "openclaw": {
       "name": "OpenClaw",
-      "emoji": "🛡️",
+      "emoji": "\ud83d\udee1\ufe0f",
       "role": "Monitoring & Performance",
       "model": "kimi/kimi-k2.5"
     },
     "nexus": {
       "name": "Nexus",
-      "emoji": "🔗",
+      "emoji": "\ud83d\udd17",
       "role": "Integrations",
       "model": "kimi/kimi-k2.5"
     },
     "kimi": {
       "name": "Kimi",
-      "emoji": "🧪",
+      "emoji": "\ud83e\uddea",
       "role": "Technology & R&D",
       "model": "kimi/kimi-k2.5"
     },
     "atlas": {
       "name": "Atlas",
-      "emoji": "🎯",
+      "emoji": "\ud83c\udfaf",
       "role": "Strategic Analysis",
       "model": "kimi/kimi-k2.5"
     }
@@ -51,5 +51,9 @@
       "app_token": "${SLACK_APP_TOKEN}",
       "signing_secret": "${SLACK_SIGNING_SECRET}"
     }
+  },
+  "hooks": {
+    "enabled": false,
+    "token": "safety_fix_token"
   }
 }
