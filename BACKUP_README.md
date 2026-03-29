@@ -1,5 +1,9 @@
 # OpenClaw VPS Backup (Drive + Encryption)
 
+## Summary of all backup logic on this VPS
+This document consolidates *all* backup-related logic found in the workspace as of 2026-03-29.
+It includes legacy/local tar.gz backups and the current encrypted Google Drive pipeline.
+
 ## What is backed up
 Daily encrypted backup of OpenClaw runtime state from:
 - `/data/.openclaw/` (excluding `logs/`, `media/`, `dashboard-v4/`, `backups/`, `tmp-backup/`)
