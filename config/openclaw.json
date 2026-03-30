@@ -81,6 +81,7 @@
       {
         "id": "kimi",
         "name": "Kimi",
+        "default": true,
         "workspace": "/data/workspace/agents/kimi",
         "agentDir": "/data/.openclaw/agents/kimi/agent",
         "model": "anthropic/claude-opus-4-6"
@@ -98,12 +99,24 @@
       }
     ]
   },
+  "bindings": [
+    {
+      "agentId": "mary",
+      "match": {
+        "channel": "slack",
+        "peer": {
+          "kind": "channel",
+          "id": "C06UQC665MX"
+        }
+      }
+    }
+  ],
   "meta": {
     "lastTouchedVersion": "2026.3.8",
-    "lastTouchedAt": "2026-03-30T05:07:15.694Z"
+    "lastTouchedAt": "2026-03-30T06:32:00.000Z"
   },
   "wizard": {
-    "lastRunAt": "2026-03-30T05:07:15.685Z",
+    "lastRunAt": "2026-03-30T05:53:58.278Z",
     "lastRunVersion": "2026.3.8",
     "lastRunCommand": "doctor",
     "lastRunMode": "local"
