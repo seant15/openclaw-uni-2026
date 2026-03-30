@@ -1,59 +1,193 @@
 {
-  "agents": {
-    "clover": {
-      "name": "Clover",
-      "emoji": "\ud83c\udf40",
-      "role": "Management & Operations",
-      "model": "kimi/kimi-k2.5"
+  "gateway": {
+    "controlUi": {
+      "allowedOrigins": [
+        "http://194.238.31.45:9090",
+        "https://194.238.31.45:9090",
+        "http://127.0.0.1:9090",
+        "http://localhost:9090",
+        "http://skwk8gk88o4o04wow40kk4w0.194.238.31.45.sslip.io",
+        "https://skwk8gk88o4o04wow40kk4w0.194.238.31.45.sslip.io",
+        "http://open.unippc24.com",
+        "https://open.unippc24.com"
+      ],
+      "allowInsecureAuth": true,
+      "enabled": true
     },
-    "writer": {
-      "name": "Writer",
-      "emoji": "\u270d\ufe0f",
-      "role": "Content Creator",
-      "model": "kimi/kimi-k2.5"
-    },
-    "mary": {
-      "name": "Mary",
-      "emoji": "\ud83d\udce1",
-      "role": "Communications",
-      "model": "kimi/kimi-k2.5"
-    },
-    "openclaw": {
-      "name": "OpenClaw",
-      "emoji": "\ud83d\udee1\ufe0f",
-      "role": "Monitoring & Performance",
-      "model": "kimi/kimi-k2.5"
-    },
-    "nexus": {
-      "name": "Nexus",
-      "emoji": "\ud83d\udd17",
-      "role": "Integrations",
-      "model": "kimi/kimi-k2.5"
-    },
-    "kimi": {
-      "name": "Kimi",
-      "emoji": "\ud83e\uddea",
-      "role": "Technology & R&D",
-      "model": "kimi/kimi-k2.5"
-    },
-    "atlas": {
-      "name": "Atlas",
-      "emoji": "\ud83c\udfaf",
-      "role": "Strategic Analysis",
-      "model": "kimi/kimi-k2.5"
+    "port": 18789,
+    "mode": "local",
+    "bind": "loopback",
+    "auth": {
+      "mode": "token",
+      "token": "uni-random-token"
     }
   },
-  "default_agent": "clover",
-  "channels": {
-    "slack": {
-      "enabled": true,
-      "bot_token": "${SLACK_BOT_TOKEN}",
-      "app_token": "${SLACK_APP_TOKEN}",
-      "signing_secret": "${SLACK_SIGNING_SECRET}"
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "opencode/kimi-k2.5"
+      },
+      "workspace": "/data/workspace",
+      "contextPruning": {
+        "mode": "cache-ttl",
+        "ttl": "1h"
+      },
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "heartbeat": {
+        "every": "30m"
+      },
+      "maxConcurrent": 6,
+      "subagents": {
+        "maxConcurrent": 10,
+        "maxSpawnDepth": 2,
+        "maxChildrenPerAgent": 5
+      }
+    },
+    "list": [
+      {
+        "id": "clover",
+        "name": "Clover 🍀",
+        "model": {
+          "primary": "kimi/kimi-k2.5",
+          "fallbacks": [
+            "openai/gpt-5.2",
+            "openai/gpt-4o-mini"
+          ]
+        },
+        "subagents": {
+          "allowAgents": [
+            "datie",
+            "kimi"
+          ]
+        }
+      },
+      {
+        "id": "datie",
+        "name": "Datie 🛡️",
+        "model": {
+          "primary": "kimi/kimi-k2.5",
+          "fallbacks": [
+            "openai/gpt-4o-mini"
+          ]
+        },
+        "subagents": {
+          "allowAgents": [
+            "datie"
+          ]
+        }
+      },
+      {
+        "id": "kimi",
+        "name": "Kimi",
+        "workspace": "/data/workspace/agents/kimi",
+        "agentDir": "/data/.openclaw/agents/kimi/agent",
+        "model": "anthropic/claude-opus-4-6"
+      },
+      {
+        "id": "mary",
+        "name": "Mary 📡",
+        "role": "Communications",
+        "model": {
+          "primary": "kimi/kimi-k2.5",
+          "fallbacks": [
+            "openai/gpt-4o-mini"
+          ]
+        }
+      }
+    ]
+  },
+  "meta": {
+    "lastTouchedVersion": "2026.3.8",
+    "lastTouchedAt": "2026-03-30T05:07:15.694Z"
+  },
+  "wizard": {
+    "lastRunAt": "2026-03-30T05:07:15.685Z",
+    "lastRunVersion": "2026.3.8",
+    "lastRunCommand": "doctor",
+    "lastRunMode": "local"
+  },
+  "browser": {
+    "evaluateEnabled": true,
+    "cdpUrl": "http://browser:9223",
+    "defaultProfile": "openclaw"
+  },
+  "models": {
+    "providers": {
+      "kimi": {
+        "baseUrl": "https://api.moonshot.ai/anthropic",
+        "apiKey": "sk-82XbIk4gtRWPI101M1bvZUh1QZFFbXkZXKOLI7fjnfJcMykt",
+        "api": "anthropic-messages",
+        "models": [
+          {
+            "id": "kimi-k2.5",
+            "name": "Kimi K2P5",
+            "contextWindow": 128000
+          }
+        ]
+      },
+      "kimi-coding": {
+        "api": "anthropic-messages",
+        "apiKey": "sk-82XbIk4gtRWPI101M1bvZUh1QZFFbXkZXKOLI7fjnfJcMykt",
+        "baseUrl": "https://api.moonshot.ai/anthropic",
+        "models": [
+          {
+            "id": "k2p5",
+            "name": "Kimi K2P5",
+            "contextWindow": 128000
+          }
+        ]
+      }
     }
+  },
+  "messages": {
+    "ackReactionScope": "group-mentions"
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
   },
   "hooks": {
-    "enabled": false,
-    "token": "safety_fix_token"
+    "enabled": true,
+    "token": "super-secret-hook-token-2026"
+  },
+  "channels": {
+    "slack": {
+      "mode": "socket",
+      "signingSecret": "2b0fcc2ccd1546e5b265706a14061e5c",
+      "webhookPath": "/slack/events",
+      "enabled": true,
+      "botToken": "xoxb-2160282303925-10543543071607-zr16HoAAsL9C6qC0EcH7CJvz",
+      "appToken": "xapp-1-A0AG8HE7GP5-10721140031665-4ddc580d8d327f99901e3f4fca7d27eb0c5fdda27fa66f10c2d71be8f95c0ab6",
+      "userTokenReadOnly": true,
+      "groupPolicy": "allowlist",
+      "streaming": "partial",
+      "nativeStreaming": true,
+      "channels": {
+        "C06LX83Q257": {
+          "enabled": true
+        },
+        "C05PN0C4LUB": {
+          "enabled": true
+        },
+        "C06UQC665MX": {
+          "enabled": true
+        },
+        "C0AGZLUBYP4": {
+          "enabled": true
+        }
+      }
+    }
+  },
+  "skills": {
+    "entries": {
+      "notion": {
+        "enabled": true,
+        "apiKey": "ntn_b71105253384UjosYAkhmD0DMmabnpOsWrl7Rp8LWg6gs3"
+      }
+    }
   }
 }
