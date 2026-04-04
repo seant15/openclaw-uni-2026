@@ -1,0 +1,46 @@
+--- MEMORY.md	2026-03-30 02:17:31.786785819 +0000
++++ security/proposals/MEMORY-thin-core-proposed.md	2026-03-30 02:36:29.980934743 +0000
+@@ -64,39 +64,13 @@
+ 
+ ## Known Mistakes Checklist (Don't Repeat)
+ 
+-### Format
+-- **场景**: 发生了什么
+-- **后果**: 造成了什么问题
+-- **解决方案/未来约束**: 如何避免重复
+-
+-### Entries
+-
+-- **场景**: OpenClaw 配置中 `agents.defaults.model.primary` 设置为 `opencode/kimi-k2.5`，但 `models.providers` 中只有 `kimi` 和 `kimi-coding` 两个 provider，导致引用不存在的 provider。
+-- **后果**: 未显式配置 model 的 agent 无法找到对应的 provider，模型调用失败。
+-- **解决方案/未来约束**: 
+-  - 修改 model 配置时，必须以 `models.providers` 中定义的 provider ID 为基准
+-  - Model ref 格式: `{provider}/{model-id}`，必须与 `models.providers.{provider}.models[].id` 匹配
+-  - 修改后执行 `/model status` 验证当前 session 使用的模型
+-  - 添加新 provider 时，同步更新所有 agent 的 model 引用
++Full checklist moved to: `/data/workspace/security/reference/memory-archive/known-mistakes-checklist.md`
+ 
+-- [占位] 等待填充...
++Key rule: Model ref must match `{provider}/{model-id}` from `models.providers` config.
+ 
+ ## Open questions / TODO
+-- Decide final Kimi provider wiring + exact model id used in OpenClaw.
+-- Add weekly memory compactor cron (Fri 07:00, tz TBD) that posts to both chat + Slack.
+ 
+-## TODO (Ops hardening)
+-- Secret management: move away from local plaintext `.env` storage; evaluate Doppler or 1Password CLI.
+-- Monitoring + alerting: add real-time resource monitoring (RAM/CPU/disk) with alerts (Grafana stack or simple Discord/Slack webhook).
+-- Silent failure prevention: add verification + alerting for backups/sync (pg_dump validation + periodic restore test; rsync exit-code checks + webhook alerts).
+-- Agent execution audit log: write who/when/what for every agent invocation to Supabase `agent_executions` (traceability for mis-ops).
+-- Quarterly restore drill: run full restore rehearsal in staging; calendar reminder is sufficient ("backups untested = backups worthless").
+-- Versioning for MEMORY + configs: ensure `MEMORY.md` + `openclaw.json` changes are recoverable (git tags like `vYYYY.M.DD` after updates; pair with auto_sync).
+-- QMD health dashboard: Datie weekly system health brief (Mon/Thu): backup status, QMD index freshness, API token expiry, agent activity → post to Slack.
+-- Cross-agent knowledge broadcast: when an agent finds important items, write a "cross-agent notice" entry that others read on startup.
+-- Known Mistakes list: start filling real entries so failures become reusable lessons.
+-- Backup health check + DM alerts: daily (04:00 MST) check "successful backup in last 24h" (Drive via `rclone ls`); if missing, DM Sean + Clover (cron + openclaw message).
+-- Disaster-recovery completeness: include scheduler tables in DB dumps/restores (overwrite `scheduled_tasks` + `scheduled_task_executions`) so all scheduled automations + execution history return automatically after a VPS rebuild.
++Active TODOs moved to: `/data/workspace/security/reference/memory-archive/active-todos.md`
+ 
+ ---
+-_Last updated: 2026-03-29_
++_Last updated: 2026-03-30_

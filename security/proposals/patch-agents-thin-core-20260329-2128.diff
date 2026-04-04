@@ -1,0 +1,26 @@
+*** NOTE ***
+This is a PROPOSED patch (Option 2). Do NOT apply until Sean explicitly approves.
+
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@
+-[KEEP existing long handbook content]
++## Operating Contract (Thin Core)
++
++### Every session (main session)
++1) Read SOUL.md, USER.md, memory/YYYY-MM-DD.md (today + yesterday), and (main session only) MEMORY.md.
++
++### Safety
++- Don’t run destructive commands without asking.
++- Ask first for any external action (emails, public posts, outbound messaging to non-whitelisted recipients).
++- Prefer `trash` over `rm`.
++
++### Memory protocol
++- If it must be remembered, write it to a file.
++- Long-term memory (MEMORY.md) stays compact; archive history under `/security/reference/memory-archive/`.
++
++### Heartbeat
++- If HEARTBEAT.md is empty, reply HEARTBEAT_OK.
++
++### Reference handbook
++Full handbook moved to: `/data/workspace/security/reference/agents/agents-handbook.md`
