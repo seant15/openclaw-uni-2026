@@ -45,6 +45,7 @@ services:
     ports:
       - "${OPENCLAW_PORT:-18789}:18789"
       - "${OPENCLAW_BRIDGE_PORT:-18790}:18790"
+      - "9091:9091"  # OpenClaw Control Center Dashboard
       
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
