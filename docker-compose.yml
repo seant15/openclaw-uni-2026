@@ -36,7 +36,11 @@ services:
       
       # Your tracked configs (from this repo)
       - ./config/openclaw.json:/home/openclaw/.openclaw/openclaw.json:ro
-      - ./workspace/agents:/home/openclaw/.openclaw/workspace/agents:ro
+      # Per-agent mounts — active roster: clover, mary, kimi, datie (fixed 2026-04-06)
+      - ./workspace/clover:/home/openclaw/.openclaw/workspace/agents/clover:ro
+      - ./workspace/mary:/home/openclaw/.openclaw/workspace/agents/mary:ro
+      - ./workspace/kimi:/home/openclaw/.openclaw/workspace/agents/kimi:ro
+      - ./workspace/datie:/home/openclaw/.openclaw/workspace/agents/datie:ro
       - ./workspace/memory:/home/openclaw/.openclaw/workspace/memory:rw
       
       # Backup/restore scripts
@@ -58,6 +62,4 @@ volumes:
   openclaw-data:
     driver: local
     driver_opts:
-      type: none
-      o: bind
-      device: /data/.openclaw
+      
