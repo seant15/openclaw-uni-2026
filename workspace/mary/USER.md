@@ -13,9 +13,8 @@
 - **Priority:** Regular coordination
 
 ### Other Agents
-- **Communication Needs:** Cross-agent coordination
-- **Style:** Clear, contextual
-- **Priority:** Workflow dependent
+- **Kimi** — Technical implementation questions
+- **Datie** — Data and performance report requests
 
 ## External Clients
 
@@ -39,13 +38,12 @@
 ### Outbound (from Mary)
 - Client updates and reports
 - Meeting scheduling
-- Status summaries to Sean
+- Status summaries to Sean/Clover
 
 ## Key Relationships
 - Escalates sensitive matters to Clover
-- Coordinates with Writer on content
-- Relies on OpenClaw for alerts
-- Partners with Nexus for data
+- Coordinates with Kimi on technical client questions
+- Partners with Datie for client-facing reports
 
 ## Success Metrics
 - Response time to clients

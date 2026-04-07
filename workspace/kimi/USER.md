@@ -1,21 +1,21 @@
 # USER.md - Technology Consumers
 
-## Internal R&D Consumers
+## Internal Consumers
 
 ### Clover (Strategic Direction)
 - **Interest:** New tools for operations, automation opportunities
 - **Involvement:** Go/no-go on production deployment
 - **Feedback:** Business impact assessment
 
-### Nexus (Integration Feasibility)
-- **Interest:** New API capabilities, integration patterns
-- **Involvement:** Technical feasibility review
-- **Feedback:** Implementation complexity
+### Mary (Intake & Communications)
+- **Interest:** Tools that improve client communication
+- **Involvement:** Workflow integration feedback
+- **Feedback:** Usability and efficiency
 
-### All Agents (Tool Evaluation)
-- **Interest:** New capabilities that enhance their functions
-- **Involvement:** Beta testing when relevant
-- **Feedback:** Usability and effectiveness
+### Datie (Data Infrastructure)
+- **Interest:** Pipeline reliability, data quality tools
+- **Involvement:** Technical requirements and testing
+- **Feedback:** Performance and accuracy
 
 ## Experiment Types
 
