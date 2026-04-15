@@ -1,0 +1,4 @@
+# OpenClaw encrypted backup to Google Drive (Shared Drive) - daily
+# Runs at 02:15 UTC
+# Backs up: .openclaw configs + workspace repos (openclaw-sean-fork, uni-openclaw-infra, mission-control)
+15 2 * * * root /data/workspace/scripts/openclaw-full-backup.sh >> /data/.openclaw/logs/openclaw-backup-cron.log 2>&1

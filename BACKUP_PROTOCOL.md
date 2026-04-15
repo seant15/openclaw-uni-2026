@@ -15,9 +15,9 @@
 
 | Repo | GitHub | VPS Path | Local Path | Purpose |
 |------|--------|----------|------------|---------|
-| `openclaw-uni-2026` | `seant15/openclaw-uni-2026` | `/data/workspace/uni-openclaw-infra/` | `OPENCLAW_LOCAL_032026/openclaw-uni-2026/` | **Infra + agent configs** — Coolify deploys this. Source of truth for SOUL.md, IDENTITY.md, docker-compose. |
-| `openclaw-sean-fork` | `seant15/openclaw` | `/data/workspace/openclaw-sean-fork/` | `openclaw-backup/volumes/workspace/openclaw-sean-fork/` | **OpenClaw platform code** — fork of official openclaw. Don't put agent configs here. |
-| `uni-mission-control` | `seant15/uni-mission-control` | `/data/workspace/mission-control/` | `openclaw-backup/volumes/workspace/mission-control/` | **Mission Control UI** — the web dashboard. |
+| `openclaw-uni-2026` (clone dir often `uni-claw`) | `seant15/openclaw-uni-2026` | `/data/workspace/uni-openclaw-infra/` | `OPENCLAW_LOCAL_032026/uni-claw/` | **Infra + agent configs** — Coolify deploys this. Source of truth for SOUL.md, IDENTITY.md, docker-compose, backup scripts in `scripts/`. |
+| `openclaw-sean-fork` | `seant15/openclaw` | `/data/workspace/openclaw-sean-fork/` | `OPENCLAW_LOCAL_032026/openclaw-backup/volumes/workspace/openclaw-sean-fork/` (after rsync) | **OpenClaw platform code** — fork of official openclaw. Don't put agent configs here. |
+| `uni-mission-control` | `seant15/uni-mission-control` | `/data/workspace/mission-control/` | `OPENCLAW_LOCAL_032026/openclaw-backup/volumes/workspace/mission-control/` (after rsync) | **Mission Control UI** — the web dashboard. |
 
 > ⚠️ **Common mistake:** VPS doc previously listed mission-control as `TianyiDataScience/openclaw-control-center`. This was wrong. Actual remote is `seant15/uni-mission-control`.
 
@@ -61,12 +61,13 @@ openclaw-uni-2026/
 **Recovery:** Download → decrypt (age) → restore to `/data/` → restart
 **Last verified:** 2026-04-06
 
-### Layer 3 — Local rsync Backup (This Folder)
-**What:** Full VPS rsync snapshot
-**Where:** `OPENCLAW_LOCAL_032026/openclaw-backup/volumes/`
-**When:** Run `openclaw-backup/scripts/backup.sh` manually or on schedule
-**Purpose:** Offline access, AI-assisted debugging, disaster recovery
-**NOT a git backup** — this is a filesystem snapshot, not version history
+### Layer 3 — Local rsync Backup (Developer machine)
+**What:** PostgreSQL dump (Coolify DB) + rsync of the OpenClaw data directory from the VPS (see `OPENCLAW_DATA_PATH` in `openclaw-backup/scripts/backup.sh`, currently `/opt/openclaw/data`).
+**Where:** `OPENCLAW_LOCAL_032026/openclaw-backup/database/` and `.../openclaw-backup/volumes/`
+**When:** Run `openclaw-backup/scripts/backup.sh` manually or from local cron
+**Purpose:** Offline archive, search-heavy work in a local IDE, disaster recovery drills.
+
+**NOT a git backup** — filesystem + DB dump snapshot, not version history. For encrypted offsite copies, use Layer 2 (Drive).
 
 ---
 
@@ -90,11 +91,11 @@ openclaw-uni-2026/
 
 ### Making a change to an agent
 ```bash
-# 1. Edit the file locally in OPENCLAW_LOCAL_032026/openclaw-uni-2026/
+# 1. Edit the file locally in OPENCLAW_LOCAL_032026/uni-claw/
 #    e.g. workspace/mary/SOUL.md
 
 # 2. Commit
-cd OPENCLAW_LOCAL_032026/openclaw-uni-2026
+cd OPENCLAW_LOCAL_032026/uni-claw
 git add workspace/mary/SOUL.md
 git commit -m "refactor(mary): [what changed and why]"
 

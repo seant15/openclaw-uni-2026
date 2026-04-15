@@ -1,46 +1,67 @@
 # Backup Logic (Consolidated) — OpenClaw VPS
 
-Last updated: 2026-03-29 (UTC)
+Last updated: 2026-04-15 (UTC)
 
 ## 0) Goals
 - Preserve OpenClaw runtime state (configuration + interaction/memory data).
 - Keep offsite copies (Google Drive) encrypted.
 - Maintain a simple restore playbook.
 
-## 1) Current primary backup pipeline (ACTIVE)
-### 1.1 What is backed up
-Source: `/data/.openclaw/`
+## 1) Current primary backup pipeline (ACTIVE — scheduled)
+The script checked into **this repository** (mirrors what should exist on the VPS at `/data/workspace/scripts/`):
 
-Included (implicitly):
-- `openclaw.json`
-- `agents/` + `workspace-*` (agent workspaces and memory)
-- `memory/` (incl. sqlite)
-- `credentials/` (sensitive)
-- `cron/`
+- `scripts/openclaw-full-backup.sh`
 
-Excluded (to avoid noise/size):
-- `logs/`
-- `media/`
-- `dashboard-v4/` (large static assets)
-- `backups/` (to avoid self-inclusion)
-- `tmp-backup/`
+Reference cron snippet (install to `/etc/cron.d/openclaw-backup` or root crontab on the VPS):
 
-Implementation: `/data/workspace/scripts/openclaw_backup_to_gdrive.sh`
+- `15 2 * * * root /data/workspace/scripts/openclaw-full-backup.sh >> /data/.openclaw/logs/openclaw-backup-cron.log 2>&1`
 
-### 1.2 How it works
-1) Tar `/data/.openclaw` with exclusions
-2) Compress with zstd
-3) Encrypt with age using a local keypair (non-interactive)
-4) Upload encrypted artifact to Google Drive via rclone
-5) Retention: delete remote + local artifacts older than 7 days
+Checked-in template (copy to `/etc/cron.d/openclaw-backup` after review):
 
-Output artifact name:
+- `cron/openclaw-backup.cron`
+
+### 1.1 What is backed up (full script — two encrypted artifacts)
+**Part A — OpenClaw runtime tree**
+
+- Source: `/data/.openclaw/`
+- Packaged from that directory with exclusions (see script `EXCLUDES` in `scripts/openclaw-full-backup.sh`), including extra exclusion of `./node_modules/**` for the OpenClaw tar step.
+
+**Part B — Workspace tree (repos + working files)**
+
+- Source: `/data/workspace/` copied via `rsync` into a temp folder, then tarred.
+- Excludes (high level): `node_modules`, `.git/objects`, `.git/logs`, `*.log`, `tmp`, `temp` (see script).
+
+### 1.2 Lighter alternative script (NOT the scheduled full backup)
+This repo also contains a **smaller** pipeline that only tars `/data/.openclaw` and uploads one artifact:
+
+- `/data/workspace/scripts/openclaw_backup_to_gdrive.sh`
+
+Use it when you intentionally want “OpenClaw state only” without the workspace tarball. Retention in that script is **7 days** remote + local (see script).
+
+### 1.3 How the full script works (summary)
+1) Tar `/data/.openclaw` (with exclusions) → zstd → age → artifact in `/data/.openclaw/backups/`
+2) Rsync `/data/workspace/` to temp → tar → zstd → age → second artifact in `/data/.openclaw/backups/`
+3) `rclone copyto` both artifacts to `gdrive-backup:OpenClawBackups/<hostname>/`
+4) Retention (full script): remote **14 days** (`336h`), local encrypted files **7 days**, per-run log files **30 days** (see script)
+
+Output artifact names (full script):
+
 - `openclaw-<hostname>-<YYYYMMDDTHHMMSSZ>.tar.zst.age`
+- `workspace-<hostname>-<YYYYMMDDTHHMMSSZ>.tar.zst.age`
 
 Local output directory:
+
 - `/data/.openclaw/backups/`
 
-### 1.3 Encryption keys (age)
+Per-run detailed log (full script):
+
+- `/data/.openclaw/logs/openclaw-backup-<YYYYMMDDTHHMMSSZ>.log`
+
+Cron wrapper log (stdout/stderr from cron line above):
+
+- `/data/.openclaw/logs/openclaw-backup-cron.log`
+
+### 1.4 Encryption keys (age)
 On VPS:
 - PRIVATE identity: `/data/.openclaw/credentials/backup/age.key`
 - PUBLIC recipient: `/data/.openclaw/credentials/backup/age.recipient`
@@ -52,7 +73,7 @@ Offsite (Drive):
 Security note:
 - If `age.key` is lost, backups cannot be decrypted.
 
-### 1.4 Google Drive target
+### 1.5 Google Drive target
 - Uses a **Shared Drive** (Team Drive) to avoid service account quota limitations.
 - rclone remote: `gdrive-backup`
 - Root folder: `OpenClawBackups/`
@@ -64,17 +85,18 @@ rclone config:
 Service account key:
 - `/data/.openclaw/credentials/gdrive/sa.json`
 
-### 1.5 Schedule (cron)
+### 1.6 Schedule (cron)
 Installed at:
-- `/etc/cron.d/openclaw-backup`
+- `/etc/cron.d/openclaw-backup` (after copying from `cron/openclaw-backup.cron`)
 
 Runs:
 - Daily at **02:15 UTC**
 
 Logs:
-- `/data/.openclaw/logs/openclaw-backup.log`
+- `/data/.openclaw/logs/openclaw-backup-cron.log` (cron wrapper)
+- `/data/.openclaw/logs/openclaw-backup-*.log` (per run, full script)
 
-### 1.6 Restore documentation (ACTIVE)
+### 1.7 Restore documentation (ACTIVE)
 - Runbook file: `/data/workspace/docs/OPENCLAW_RESTORE_RUNBOOK.md`
 - Uploaded to Drive: `OpenClawBackups/OPENCLAW_RESTORE_RUNBOOK.md`
 
@@ -129,3 +151,29 @@ Behavior:
 - Decide whether to include/exclude `dashboard-v4/` in the encrypted Drive backup.
 - Add a health check: verify a successful backup exists in the last 24h and DM on failure.
 - Rotate and securely archive the age identity key offline (separate from Drive).
+
+
+## 6) FAQ & decisions (consolidated 2026-04-15)
+
+Chinese summary for future readers (same answers as discussed in ops review).
+
+**Q1:本机 `openclaw-backup/scripts/backup.sh`（第三条线）这样设对不对？OpenClaw 的 config 是不是主要在 `uni-claw` 里就备份够了？**
+
+- 第三条线做的是：SSH 到 VPS → `pg_dump`（Coolify DB）→ 按脚本里的 `OPENCLAW_DATA_PATH`（默认 `/opt/openclaw/data`）rsync 到本机 `openclaw-backup/volumes/`。是否「对」以 **VPS 上容器实际 bind mount** 为准；若以后部署改了数据目录，必须同步改脚本里的 `OPENCLAW_DATA_PATH`，否则会出现少备或备错路径。建议在 VPS 上对 OpenClaw 容器做一次 `docker inspect`，核对挂载路径与变量一致。
+- **配置分两层，不能互相替代：**
+  - **Git（本机 `uni-claw` /远端 `openclaw-uni-2026`）**：版本化的「源」——`config/openclaw.json`、`workspace/*/SOUL.md` 等，协作与回滚以这里为准。
+  - **线上磁盘（通常对应 `/data/.openclaw/` 等）**：实际运行态、cron、`jobs.json`、凭证布局等，**不一定**与 Git 逐字一致。
+  - **`openclaw-backup/volumes/`**：是 `OPENCLAW_DATA_PATH` 下 **现场磁盘快照**，不是「只备份 uni-claw」。因此：**uni-claw = 已提交的配置与设计；volumes = 线上真实状态**，两条线角色不同。
+
+**Q2: 文档/脚本合并到 Git 后，VPS `git pull` 是否就等于「优化完成」？**
+
+- **否。** `git pull` 只更新工作区里的文件。
+- **加密定时备份** 还要求系统 cron 已安装且指向 `openclaw-full-backup.sh`（例如将 `cron/openclaw-backup.cron` 安装到 `/etc/cron.d/openclaw-backup`）。**Pull 代码不会自动安装或修改 cron**，需单独验收（见 `openclaw-backup/volumes/workspace/BACKUP_ANALYSIS_AND_COORDINATION.md` 中的诊断思路，但以当前机器为准）。
+
+**Q3: 是否需要「并行」维护本机 `uni-claw` 与 `openclaw-backup/volumes/`？**
+
+- **不必**当成同一类重复全量备份。
+- **推荐分工：** 日常开发与提交走 `uni-claw`（Git）；需要对照线上真实文件、大范围 IDE 检索、或做恢复演练时，再运行本机 `openclaw-backup/scripts/backup.sh` 刷新 `volumes/`（可按周或发版前，不必每次提交都跟跑）。
+- 若从不查线上磁盘，可弱化 rsync；一旦要查 cron、凭证路径或与仓库不一致的现场差异，**没有 volumes 镜像会很不方便**。
+
+**Windows 工作区总览（本机 `OPENCLAW_LOCAL_032026`）** 另见仓库 **外部** 文件 `LOCAL_BACKUP_ARCHIVE.md`（若随工作区分发）；其中说明 `uni-claw` 与 `openclaw-backup` 目录分工。

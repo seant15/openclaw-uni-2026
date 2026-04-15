@@ -1,7 +1,7 @@
 # OpenClaw System Architecture
 
-**For:** Future team members and troubleshooting reference  
-**Last Updated:** 2026-02-26  
+**For:** Future team members and troubleshooting reference
+**Last Updated:** 2026-04-06 (repo map corrected + backup protocol added)
 **Maintained by:** UNI Marketing / Sean Tan
 
 ---
@@ -117,12 +117,24 @@ User Message ──► OpenClaw Gateway ──► LLM (Kimi/OpenAI/Anthropic)
 
 ### Git-Tracked Configs (Source of Truth)
 
-| Data Type | Location | Purpose |
-|-----------|----------|---------|
-| **Config** | `config/openclaw.json` | Agent definitions, models, channels |
-| **Agent docs** | `workspace/agents/` | SOUL.md, TOOLS.md, etc. |
-| **Memory** | `workspace/memory/` | Daily logs, curated memories |
-| **Scripts** | `scripts/` | Backup/restore automation |
+| Data Type | Git Location | Repo | Notes |
+|-----------|-------------|------|-------|
+| **Config** | `config/openclaw.json` | `openclaw-uni-2026` | Agent definitions, models, channels |
+| **Agent SOUL/IDENTITY** | `workspace/{agent-name}/` | `openclaw-uni-2026` | e.g. `workspace/mary/SOUL.md` |
+| **Memory** | `workspace/memory/` | `openclaw-uni-2026` | Daily logs, curated memories |
+| **Scripts** | `scripts/` | `openclaw-uni-2026` | Backup/restore automation |
+| **Platform code** | repo root | `openclaw-sean-fork` | OpenClaw core — rarely touched |
+| **Mission Control UI** | repo root | `uni-mission-control` | Web dashboard |
+
+> ⚠️ `workspace/agents/` in this repo is an **empty placeholder**. Agent files are at `workspace/{agent-name}/` (e.g. `workspace/mary/`). The docker-compose mount needs updating to match — see BACKUP_PROTOCOL.md.
+
+### Repo Map (Verified 2026-04-06)
+
+| Repo | GitHub Remote | VPS Path | Local Backup Path |
+|------|--------------|----------|-------------------|
+| `openclaw-uni-2026` | `seant15/openclaw-uni-2026` | `/data/workspace/uni-openclaw-infra/` | `openclaw-uni-2026/` |
+| `openclaw-sean-fork` | `seant15/openclaw` | `/data/workspace/openclaw-sean-fork/` | `openclaw-backup/volumes/workspace/openclaw-sean-fork/` |
+| `uni-mission-control` | `seant15/uni-mission-control` | `/data/workspace/mission-control/` | `openclaw-backup/volumes/workspace/mission-control/` |
 
 ---
 
