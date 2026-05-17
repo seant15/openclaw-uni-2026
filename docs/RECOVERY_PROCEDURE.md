@@ -8,7 +8,7 @@ This document describes how to recover the UNI OpenClaw system on a fresh VPS or
 
 ### In scope
 - OpenClaw runtime state under `/data/.openclaw` (restored from encrypted backup)
-- UNI Claw Config repo (`seant15/uni-claw-config`) (runbooks + scripts + infra notes)
+- OpenClaw uni infra repo (`seant15/openclaw-uni-2026`) (runbooks + scripts + infra notes; merged former uni-claw-config)
 - Coolify-managed services (OpenClaw container stack, Mission Control, Control Center)
 
 ### Out of scope
@@ -62,9 +62,9 @@ cd /data/workspace
 mkdir -p /data/workspace
 cd /data/workspace
 
-# Clone uni-claw-config (read-only is fine for recovery)
+# Clone openclaw-uni-2026 (read-only is fine for recovery)
 # (Use SSH if deploy keys are configured)
-# git clone git@github.com:seant15/uni-claw-config.git .
+# git clone git@github.com:seant15/openclaw-uni-2026.git .
 ```
 
 If the repo already exists:

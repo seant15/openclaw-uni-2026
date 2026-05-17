@@ -5,7 +5,7 @@ This document captures the minimal configuration needed to deploy OpenClaw via *
 ## Goal
 
 - Coolify config is the *deployment source of truth* (values live in Coolify)
-- `uni-claw-config` repo is the *documentation source of truth* (variable names, required mounts, ports, and recovery procedures)
+- `openclaw-uni-2026` repo is the *documentation source of truth* (variable names, required mounts, ports, and recovery procedures)
 - No secrets are stored in git.
 
 ## Required persistence
