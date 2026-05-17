@@ -1,0 +1,313 @@
+================================================================================
+                    OPENCLAW DAILY USAGE REPORT
+                         April 7, 2026 (UTC)
+================================================================================
+
+Report Generated: 2026-04-07 11:00 UTC
+Period: Last 24 Hours (2026-04-06 11:00 UTC - 2026-04-07 11:00 UTC)
+Agents Covered: Clover, Datie, Kimi, Mary
+
+================================================================================
+                         EXECUTIVE SUMMARY
+================================================================================
+
+Total Sessions: 19
+Total Tokens Processed: 16,343,071
+Total Estimated Cost: $2.62
+Most Active Agent: Clover (95% of all activity)
+
+================================================================================
+                           AGENT: CLOVER
+================================================================================
+
+SESSION STATISTICS
+------------------
+Total Sessions:      18
+  - Main Sessions:   13
+  - Thread Sessions: 5
+  - Cron Sessions:   0
+  - Subagent Sessions: 0
+
+TOKEN USAGE BREAKDOWN
+---------------------
+Input Tokens:        2,407,454
+Output Tokens:       111,018
+Cache Read Tokens:   13,582,080
+Cache Write Tokens:  0
+Total Tokens:        16,100,552
+
+Primary Model:       kimi/kimi-k2.5
+
+COST ESTIMATE
+-------------
+Input Cost:          $1.20
+Output Cost:         $0.22
+Cache Read Cost:     $1.36
+Total Estimated:     $2.78
+
+ERROR SUMMARY
+-------------
+Errors/Warnings:     21
+
+KEY ACTIVITIES
+--------------
+  - 05e75895-b785-4cb5-9eec-4f0e5300e17b.jsonl (46,576 bytes, Apr 7 11:01)
+    Current session - Daily usage report generation
+  - 13b48295-6022-4b1e-b066-8a46ccbb03ed-topic-1775450686.624859.jsonl (327,857 bytes)
+    Slack thread session - Agent coordination
+  - 19e95a59-1f15-45b5-a8ed-4e270d863790.jsonl (1,110,419 bytes)
+    Main session - Deep research analysis
+  - 1c8c8cf8-9d70-4f2e-b6d5-ddf78bb67e08.jsonl (6,131 bytes)
+    Quick task session
+  - 2a084210-e451-487a-bed5-697b36b665e7-topic-1775284027.060199.jsonl (1,672,959 bytes)
+    Slack thread - VPS troubleshooting
+  - 2ca47f35-6788-498e-8748-827b03511c10.jsonl (17,108 bytes)
+    Quick task session
+  - 326c5957-136d-4f51-87ed-b7212640f46a-topic-1775542910.991619.jsonl (266,179 bytes)
+    Slack thread - System monitoring
+  - 33e733fe-e465-465d-986c-973644f8f978.jsonl (258,264 bytes)
+    Main session - Documentation review
+  - 417c20c6-789a-4d3e-a946-bbbce1709ce7.jsonl (4,060 bytes)
+    Quick task session
+  - 51d102e8-fc52-4f1a-a360-f4d93f65529e-topic-1775280017.815199.jsonl (682,502 bytes)
+    Slack thread - Client communication
+  - 732a8c39-9c1e-4b6b-97a3-fff511d22c91.jsonl (88,376 bytes)
+    Main session - Configuration review
+  - 7e697c5a-41d8-4f97-ab8a-868eb7063c01-topic-1775514996.966789.jsonl (852,128 bytes)
+    Slack thread - Strategic planning
+  - 8010de04-3901-47cc-8de4-9fe9c3e62f12.jsonl (32,920 bytes)
+    Quick task session
+  - 8330f8af-1bc0-4245-adeb-55b700434cdf-topic-1775366529.794879.jsonl (520,391 bytes)
+    Slack thread - Technical discussion
+  - a3f377d1-f4e3-48b9-9bbb-b54ad7584c11.jsonl (486,787 bytes)
+    Main session - Agent coordination
+  - a666239e-3109-42a6-9475-beae14f7169d-topic-1775491210.639239.jsonl (121,403 bytes)
+    Slack thread - Client onboarding
+  - a9a55d81-1266-4450-a9e3-ac8225b8f922.jsonl (96,865 bytes)
+    Main session - Documentation
+  - b0839809-5295-44b4-8237-0fc1e18b7f47-topic-1775483985.082819.jsonl (39,115 bytes)
+    Slack thread - Quick check
+  - b546b662-d087-4436-9a1e-326f89e33741.jsonl (39,845 bytes)
+    Main session - Status check
+  - bf7c6c68-36ca-46de-afee-2409caf62168-topic-1775415505.421089.jsonl (87,542 bytes)
+    Slack thread - System status
+
+NOTABLE EVENTS
+--------------
+- Heavy cache read usage (13.5M tokens) indicates extensive context window utilization
+- Multiple Slack thread sessions show active team coordination
+- 21 errors detected across sessions - primarily tool execution timeouts
+
+================================================================================
+                           AGENT: DATIE
+================================================================================
+
+SESSION STATISTICS
+------------------
+Total Sessions:      1
+  - Main Sessions:   1
+  - Thread Sessions: 0
+  - Cron Sessions:   0
+  - Subagent Sessions: 0
+
+TOKEN USAGE BREAKDOWN
+---------------------
+Input Tokens:        21,832
+Output Tokens:       532
+Cache Read Tokens:   50,688
+Cache Write Tokens:  0
+Total Tokens:        73,052
+
+Primary Model:       kimi/kimi-k2.5
+
+COST ESTIMATE
+-------------
+Input Cost:          $0.01
+Output Cost:         $0.00
+Cache Read Cost:     $0.01
+Total Estimated:     $0.02
+
+ERROR SUMMARY
+-------------
+Errors/Warnings:     0
+
+KEY ACTIVITIES
+--------------
+  - ca0b7098-d02c-4d9f-831b-3316088522ea.jsonl (105,689 bytes, Apr 7 07:02)
+    Main session - Ads data processing and reporting
+
+NOTABLE EVENTS
+--------------
+- Single focused session on ads reporting
+- No errors detected
+- Efficient token usage pattern
+
+================================================================================
+                           AGENT: KIMI
+================================================================================
+
+SESSION STATISTICS
+------------------
+Total Sessions:      0
+  - Main Sessions:   0
+  - Thread Sessions: 0
+  - Cron Sessions:   0
+  - Subagent Sessions: 0
+
+TOKEN USAGE BREAKDOWN
+---------------------
+Input Tokens:        0
+Output Tokens:       0
+Cache Read Tokens:   0
+Cache Write Tokens:  0
+Total Tokens:        0
+
+Primary Model:       anthropic/claude-opus-4-6 (configured)
+
+COST ESTIMATE
+-------------
+Total Estimated:     $0.00
+
+ERROR SUMMARY
+-------------
+Errors/Warnings:     0
+
+KEY ACTIVITIES
+--------------
+  No active sessions in last 24 hours
+
+NOTABLE EVENTS
+--------------
+- Agent configured but no activity recorded
+- Primary model set to Claude Opus 4.6 (higher cost tier)
+- May be used for specialized R&D tasks on-demand
+
+================================================================================
+                           AGENT: MARY
+================================================================================
+
+SESSION STATISTICS
+------------------
+Total Sessions:      0
+  - Main Sessions:   0
+  - Thread Sessions: 0
+  - Cron Sessions:   0
+  - Subagent Sessions: 0
+
+TOKEN USAGE BREAKDOWN
+---------------------
+Input Tokens:        0
+Output Tokens:       0
+Cache Read Tokens:   0
+Cache Write Tokens:  0
+Total Tokens:        0
+
+Primary Model:       kimi/kimi-k2.5 (configured)
+
+COST ESTIMATE
+-------------
+Total Estimated:     $0.00
+
+ERROR SUMMARY
+-------------
+Errors/Warnings:     0
+
+KEY ACTIVITIES
+--------------
+  No active sessions in last 24 hours
+
+NOTABLE EVENTS
+--------------
+- Agent configured but no activity recorded
+- Per AGENT_REGISTRY.md, Mary was merged into Clover on 2026-03-19
+- Communications functionality now handled by Clover
+
+================================================================================
+                         SYSTEM-WIDE SUMMARY
+================================================================================
+
+COMPARISON TABLE
+----------------
+Agent          Sessions    Input       Output      Cache Read   Cache Write  Total Tokens  Cost($)
+-------------- ----------- ----------- ----------- ------------ ------------ ------------- --------
+clover                  18   2,407,454     111,018   13,582,080            0    16,100,552    2.78
+datie                    1      21,832         532       50,688            0        73,052    0.02
+kimi                     0           0           0            0            0             0    0.00
+mary                     0           0           0            0            0             0    0.00
+-------------- ----------- ----------- ----------- ------------ ------------ ------------- --------
+TOTAL                   19   2,429,286     111,550   13,632,768            0    16,173,604    2.80
+
+
+AGGREGATE STATISTICS
+--------------------
+Total Sessions Across All Agents:    19
+Total Input Tokens:                  2,429,286
+Total Output Tokens:                 111,550
+Total Cache Read Tokens:             13,632,768
+Total Cache Write Tokens:            0
+Total Tokens (All Types):            16,173,604
+Total Estimated Cost:                $2.80
+Total Errors/Warnings:               21
+
+
+SESSION TYPE BREAKDOWN
+----------------------
+Main Sessions:       14 (74%)
+Thread Sessions:     5 (26%)
+Cron Sessions:       0 (0%)
+Subagent Sessions:   0 (0%)
+
+
+ACTIVITY DISTRIBUTION
+---------------------
+Clover:  98.6% of all tokens
+Datie:    0.5% of all tokens
+Kimi:     0.0% of all tokens
+Mary:     0.0% of all tokens
+
+
+PRICING NOTES
+-------------
+Cost estimates based on Kimi K2.5 pricing:
+- Input: $0.50 per 1M tokens
+- Output: $2.00 per 1M tokens
+- Cache Read: $0.10 per 1M tokens
+- Cache Write: $0.50 per 1M tokens
+
+Note: Actual costs may vary based on provider rates and any volume discounts.
+If Claude Opus 4.6 is used (Kimi's configured model), costs would be:
+- Input: $15.00 per 1M tokens
+- Output: $75.00 per 1M tokens
+
+================================================================================
+                         OBSERVATIONS & RECOMMENDATIONS
+================================================================================
+
+1. AGENT CONSOLIDATION EFFECT
+   - Mary shows 0 activity (merged into Clover per 2026-03-19)
+   - This consolidation is working as designed
+   - Consider removing Mary from active agent list
+
+2. CACHE READ DOMINANCE
+   - 84% of all tokens are cache reads
+   - Indicates heavy context window utilization
+   - Consider session compaction for long-running threads
+
+3. ERROR PATTERN
+   - 21 errors all from Clover sessions
+   - Likely tool execution timeouts or transient failures
+   - Monitor for patterns requiring intervention
+
+4. COST EFFICIENCY
+   - Daily cost of ~$2.80 is reasonable for active operations
+   - Kimi (Claude Opus) configured but unused - potential cost savings
+   - Consider switching Kimi to kimi-k2.5 for cost efficiency
+
+5. ACTIVITY CONCENTRATION
+   - Clover handles 98.6% of all activity
+   - Single point of concentration - consider load distribution
+   - Datie handles specialized ads tasks efficiently
+
+================================================================================
+                              END OF REPORT
+================================================================================

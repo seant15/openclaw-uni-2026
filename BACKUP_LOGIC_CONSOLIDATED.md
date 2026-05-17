@@ -176,4 +176,4 @@ Chinese summary for future readers (same answers as discussed in ops review).
 - **推荐分工：** 日常开发与提交走 `uni-claw`（Git）；需要对照线上真实文件、大范围 IDE 检索、或做恢复演练时，再运行本机 `openclaw-backup/scripts/backup.sh` 刷新 `volumes/`（可按周或发版前，不必每次提交都跟跑）。
 - 若从不查线上磁盘，可弱化 rsync；一旦要查 cron、凭证路径或与仓库不一致的现场差异，**没有 volumes 镜像会很不方便**。
 
-**Windows 工作区总览（本机 `OPENCLAW_LOCAL_032026`）** 另见仓库 **外部** 文件 `LOCAL_BACKUP_ARCHIVE.md`（若随工作区分发）；其中说明 `uni-claw` 与 `openclaw-backup` 目录分工。
+**Windows 工作区总览** 见 `D:\AI SPACE SANDBOX\PATHS.md` 与 `openclaw-ops\LOCAL_BACKUP_ARCHIVE.md`；Git 真源为 `repos/openclaw-uni-2026`，VPS 镜像为 `mirrors/vps-openclaw`。

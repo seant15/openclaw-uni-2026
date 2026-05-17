@@ -1,0 +1,189 @@
+Weekly Report for Dental Artistry - Riya (Test: Feb 18-24, 2026)
+
+EXECUTIVE SUMMARY
+
+Account Overview
+Account Name: Dental Artistry
+Business: Dental Services
+Account Status: Active
+Reporting Period: February 18-24, 2026
+Total Spend: $1,245.50
+
+Performance Highlights (Last 7 Days)
+Total Impressions: 28,450
+Total Clicks: 892
+Click-Through Rate (CTR): 3.1%
+Total Ad Spend: $1,245.50
+Average Daily Spend: $177.93
+Cost Per Click (CPC): $1.40
+Total Leads: 18
+Cost Per Lead (CPL): $69.19
+Lead Conversion Rate: 2.0%
+
+Key Takeaway: Performance remained stable week-over-week. Emergency Dental campaign continues to drive the majority of leads at efficient CPL. Recommended to increase budget on high-performing campaigns.
+
+CAMPAIGN PERFORMANCE BREAKDOWN
+
+Campaign 1: Emergency Dental - Search
+Campaign ID: 123456789
+Status: Active
+Daily Budget: $75.00
+Launch Date: January 15, 2026
+
+Performance Metrics (Last 7 Days)
+Impressions: 15,230
+Clicks: 534
+CTR: 3.5%
+Spend: $756.20
+CPC: $1.42
+Leads: 14
+CPL: $54.01
+Lead Conversion Rate: 2.6%
+
+Performance Analysis
+This campaign continues to be the top performer, generating 78% of all leads at a strong CPL of $54. The high CTR of 3.5% indicates relevant ad copy and targeting. Campaign is hitting daily budget limits, suggesting opportunity to scale.
+
+Campaign 2: Cosmetic Dentistry - Search
+Campaign ID: 987654321
+Status: Active
+Daily Budget: $50.00
+Launch Date: February 1, 2026
+
+Performance Metrics (Last 7 Days)
+Impressions: 8,420
+Clicks: 241
+CTR: 2.9%
+Spend: $342.80
+CPC: $1.42
+Leads: 3
+CPL: $114.27
+Lead Conversion Rate: 1.2%
+
+Performance Analysis
+Cosmetic dentistry campaigns showing lower conversion rates compared to emergency services. Higher CPL reflects more competitive keyword landscape. Consider refining ad copy to better qualify leads before click.
+
+Campaign 3: General Dentistry - Display
+Campaign ID: 456789123
+Status: Active
+Daily Budget: $25.00
+Launch Date: January 20, 2026
+
+Performance Metrics (Last 7 Days)
+Impressions: 4,800
+Clicks: 117
+CTR: 2.4%
+Spend: $146.50
+CPC: $1.25
+Leads: 1
+CPL: $146.50
+Lead Conversion Rate: 0.9%
+
+Performance Analysis
+Display campaign generating awareness but low direct conversions. Recommend testing remarketing to improve conversion efficiency or reallocating budget to higher-performing search campaigns.
+
+KEY PERFORMANCE INDICATORS (KPIs)
+
+Primary KPIs
+Total Leads: 18
+Cost Per Lead (CPL): $69.19
+Lead Conversion Rate: 2.0%
+
+Secondary KPIs
+Click-Through Rate: 3.1%
+Cost Per Click: $1.40
+Landing Page View Rate: 85% (of clicks)
+Form Completion Rate: 35% (of landing page views)
+
+Campaign Comparison Table
+
+Metric                Emergency     Cosmetic      General       Account Avg
+Impressions           15,230        8,420         4,800         28,450
+Clicks                534           241           117           892
+CTR                   3.5%          2.9%          2.4%          3.1%
+Spend                 $756.20       $342.80       $146.50       $1,245.50
+CPC                   $1.42         $1.42         $1.25         $1.40
+Leads                 14            3             1             18
+CPL                   $54.01        $114.27       $146.50       $69.19
+Conversion Rate       2.6%          1.2%          0.9%          2.0%
+
+TOP PERFORMING SEARCH TERMS
+
+High Converting Keywords
+Term                    Clicks    Conversions    CPL
+emergency dentist       142       8              $42.50
+dental emergency        89        4              $48.75
+24 hour dentist         56        2              $55.00
+toothache relief        34        1              $78.00
+
+High Spend / No Conversion (Review Needed)
+Term                    Clicks    Spend    Action
+dentist near me         45        $68.00   Add negative keyword
+affordable dentist      32        $48.50   Pause or refine
+
+RECOMMENDATIONS
+
+Immediate Actions (Week 1)
+
+1. Increase Budget on Emergency Dental Campaign
+Current Situation: Campaign hitting daily budget limit with strong CPL of $54
+Action Items:
+- Increase daily budget from $75 to $100 (33% increase)
+- Monitor lead quality for 5-7 days
+- Expected impact: 4-5 additional leads per week
+
+2. Add Negative Keywords for Low-Quality Traffic
+Current Situation: "dentist near me" and "affordable dentist" generating clicks but no conversions
+Action Items:
+- Add "cheap" and "free" as negative keywords
+- Review search terms daily this week
+- Expected impact: Reduce wasted spend by ~$80/week
+
+Short-Term Optimizations (Weeks 2-4)
+
+3. Test New Ad Copy for Cosmetic Dentistry
+Current Situation: Lower CTR and conversion rate on cosmetic campaigns
+Action Items:
+- Test benefit-focused headlines ("Smile Makeover Results")
+- Add price transparency in descriptions
+- Create dedicated landing page for cosmetic services
+
+4. Implement Remarketing for Display Campaign
+Current Situation: General dentistry display showing low direct conversions
+Action Items:
+- Set up remarketing audience (website visitors 30 days)
+- Create remarketing-specific ads with offer
+- Expected impact: Improve CPL from $146 to under $100
+
+ACCOUNT HEALTH ASSESSMENT
+
+Strengths
+- Emergency dental campaign performing exceptionally well with 3.5% CTR
+- Overall CPL of $69 is competitive for dental industry
+- Strong conversion rate on high-intent keywords
+- Account structure is clean and well-organized
+
+Areas Requiring Attention
+- Cosmetic dentistry campaigns need optimization (higher CPL)
+- Display campaign efficiency below target
+- Search terms need ongoing negative keyword management
+
+Opportunities
+- Scale emergency dental budget to capture more high-intent searches
+- Expand geographic targeting if capacity allows
+- Test call-only ads for emergency keywords
+- Implement automated bidding once conversion volume increases
+
+NEXT STEPS
+- Review and approve budget increase for emergency campaign
+- Schedule weekly search term review (15 minutes every Monday)
+- Provide feedback on cosmetic dentistry ad copy tests
+- Confirm capacity for additional emergency appointments
+
+---
+Report Generated: February 27, 2026
+Reporting Period: February 18-24, 2026
+Account: Dental Artistry (6329354566)
+Prepared for: Riya
+
+---
+SAMPLE REPORT - Replace with live data when API is connected
