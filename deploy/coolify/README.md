@@ -18,13 +18,17 @@ The single most important requirement is to persist `/data`.
 
 If `/data` is not persistent, redeploys will appear to “wipe” configuration.
 
-## Ports (typical)
+## Compose file (source of truth)
 
-Exact ports depend on your Coolify routing.
+Production stack: [`deploy/coolify/docker-compose.yml`](docker-compose.yml)  
+Coolify should use this repo path, not `coollabsio/openclaw` (see [`COOLIFY_SWITCH.md`](COOLIFY_SWITCH.md)).
 
-- OpenClaw UI / nginx frontend: `:8080`
-- OpenClaw Gateway (internal): `:18789`
-- Browser sidecar (internal CDP): `:9223` (if enabled)
+## Ports (production)
+
+- OpenClaw UI / nginx (Traefik upstream): **`:9090`**
+- Control Center dashboard: `:9091`
+- Gateway (loopback inside container): `:18789`
+- Browser CDP (sidecar, internal): `:9223`
 
 ## Environment variables
 
@@ -36,6 +40,7 @@ In Coolify:
 
 ## Update policy
 
+- Image upgrades: `docs/UPGRADE.md` (change `OPENCLAW_IMAGE_TAG`, redeploy).
 - Updates are manual weekly.
 - Always run/verify encrypted backup before redeploy.
 

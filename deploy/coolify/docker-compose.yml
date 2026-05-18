@@ -1,0 +1,39 @@
+# Production OpenClaw stack for Coolify (Track A).
+# Image upgrades: change OPENCLAW_IMAGE_TAG in Coolify env, or edit the image line below.
+# Do NOT use ${PORT:-8080} — Traefik defaults to compose port 8080 and causes HTTPS 502.
+
+services:
+  openclaw:
+    image: coollabsio/openclaw:${OPENCLAW_IMAGE_TAG:-2026.5.12}
+    ports:
+      - "9090:9090"
+      - "9091:9091"
+      - "18789:18789"
+    environment:
+      - OPENCODE_API_KEY=${OPENCODE_API_KEY}
+      - OPENCLAW_PRIMARY_MODEL=${OPENCLAW_PRIMARY_MODEL:-opencode/kimi-k2.5}
+      - AUTH_USERNAME=${AUTH_USERNAME:-admin}
+      - AUTH_PASSWORD=${AUTH_PASSWORD}
+      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}
+      - OPENCLAW_ALLOWED_ORIGINS=${OPENCLAW_ALLOWED_ORIGINS}
+      - BROWSER_CDP_URL=http://browser:9223
+      - BROWSER_DEFAULT_PROFILE=openclaw
+      - BROWSER_EVALUATE_ENABLED=true
+    volumes:
+      - /opt/openclaw/data:/data
+      - ${OPENCLAW_CONFIG_HOST_PATH}:/app/config/openclaw.json:ro
+    depends_on:
+      - browser
+    restart: unless-stopped
+
+  browser:
+    image: coollabsio/openclaw-browser:${OPENCLAW_BROWSER_IMAGE_TAG:-latest}
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ:-Etc/UTC}
+      - CHROME_CLI=--remote-debugging-port=9222
+    volumes:
+      - /opt/openclaw/browser-config:/config
+    shm_size: 2g
+    restart: unless-stopped
