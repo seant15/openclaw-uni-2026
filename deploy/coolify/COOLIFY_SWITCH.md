@@ -14,8 +14,10 @@ Ensure `main` includes `deploy/coolify/docker-compose.yml`.
 | Repository | `seant15/openclaw-uni-2026` (or your fork) |
 | Branch | `main` |
 | Build Pack | Docker Compose |
-| Docker Compose Location | `/deploy/coolify/docker-compose.yml` |
+| Docker Compose Location | `/docker-compose.yml` (includes `deploy/coolify/docker-compose.yml`) or `/deploy/coolify/docker-compose.yml` |
 | Base Directory | `/` |
+
+If deploy fails with `openclaw-gateway` / `driver_opts must be a mapping`, Coolify is still using an old root compose — set **Docker Compose Location** explicitly to `/docker-compose.yml` and redeploy after `git pull`.
 
 Keep existing **Environment Variables** from the old app (secrets are not in git).
 

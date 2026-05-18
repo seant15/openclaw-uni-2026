@@ -1,4 +1,5 @@
 # Production OpenClaw stack for Coolify (Track A).
+# Included from repo root docker-compose.yml — edit here; keep root include in sync.
 # Image upgrades: change OPENCLAW_IMAGE_TAG in Coolify env, or edit the image line below.
 # Do NOT use ${PORT:-8080} — Traefik defaults to compose port 8080 and causes HTTPS 502.
 

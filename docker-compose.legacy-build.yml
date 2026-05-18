@@ -1,0 +1,46 @@
+# DEPRECATED — do not use for Coolify production (Track A).
+# Old "build from source" layout; kept for reference only.
+# Production: docker-compose.yml → deploy/coolify/docker-compose.yml
+
+version: '3.8'
+
+services:
+  openclaw-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: openclaw-gateway
+    restart: unless-stopped
+    environment:
+      HOME: /home/openclaw
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-uni-random-token}
+      KIMI_API_KEY: ${KIMI_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
+      SLACK_APP_TOKEN: ${SLACK_APP_TOKEN}
+      SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
+      OPENCLAW_CONFIG_DIR: /home/openclaw/.openclaw
+      OPENCLAW_WORKSPACE_DIR: /home/openclaw/.openclaw/workspace
+    volumes:
+      - openclaw-data:/home/openclaw/.openclaw
+      - ./config/openclaw.json:/home/openclaw/.openclaw/openclaw.json:ro
+      - ./workspace/clover:/home/openclaw/.openclaw/workspace/agents/clover:ro
+      - ./workspace/mary:/home/openclaw/.openclaw/workspace/agents/mary:ro
+      - ./workspace/kimi:/home/openclaw/.openclaw/workspace/agents/kimi:ro
+      - ./workspace/datie:/home/openclaw/.openclaw/workspace/agents/datie:ro
+      - ./workspace/memory:/home/openclaw/.openclaw/workspace/memory:rw
+      - ./scripts:/opt/openclaw/scripts:ro
+    ports:
+      - "${OPENCLAW_PORT:-18789}:18789"
+      - "${OPENCLAW_BRIDGE_PORT:-18790}:18790"
+      - "9091:9091"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  openclaw-data:
