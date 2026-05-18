@@ -41,5 +41,11 @@ This repo (`openclaw-uni-2026`) only owns compose, agents, and `config/openclaw.
 
 ## Traefik / HTTPS
 
-- UI must listen on **9090** inside the container; domain must route to **9090** (see `deploy/coolify/docker-compose.yml`).
-- If HTTPS returns 502 but `curl http://<vps-ip>:9090` is 200, check Traefik `loadbalancer.server.port` labels — should be `9090`.
+- UI must listen on **9090** inside the container; domain must route to **9090** (see `docker-compose.yml`).
+- If HTTPS returns 502 but `curl http://<vps-ip>:9090` is 200, check Traefik labels on the openclaw container:
+
+  ```bash
+  docker inspect openclaw-<id> --format '{{json .Config.Labels}}' | jq -r 'to_entries[] | select(.key | test("loadbalancer.server.port"))'
+  ```
+
+  Should show `9090`. Root compose includes explicit labels; after redeploy run `docker restart coolify-proxy` if needed.

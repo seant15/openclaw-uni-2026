@@ -24,6 +24,12 @@ services:
     depends_on:
       - browser
     restart: unless-stopped
+    labels:
+      # Coolify creates routers but often omits backend port; nginx listens on 9090.
+      - traefik.http.services.https-0-ug0g8cs4kkw0040cwsswk40c-openclaw.loadbalancer.server.port=9090
+      - traefik.http.services.http-0-ug0g8cs4kkw0040cwsswk40c-openclaw.loadbalancer.server.port=9090
+      - traefik.http.routers.https-0-ug0g8cs4kkw0040cwsswk40c-openclaw.service=https-0-ug0g8cs4kkw0040cwsswk40c-openclaw
+      - traefik.http.routers.http-0-ug0g8cs4kkw0040cwsswk40c-openclaw.service=http-0-ug0g8cs4kkw0040cwsswk40c-openclaw
 
   browser:
     image: coollabsio/openclaw-browser:${OPENCLAW_BROWSER_IMAGE_TAG:-latest}
