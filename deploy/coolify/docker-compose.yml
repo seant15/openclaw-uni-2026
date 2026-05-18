@@ -5,7 +5,7 @@
 
 services:
   openclaw:
-    image: coollabsio/openclaw:${OPENCLAW_IMAGE_TAG:-2026.5.10}
+    image: coollabsio/openclaw:${OPENCLAW_IMAGE_TAG:-2026.5.7}
     ports:
       - "9090:9090"
       - "9091:9091"

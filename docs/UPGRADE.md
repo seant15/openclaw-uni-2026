@@ -14,7 +14,7 @@ This repo (`openclaw-uni-2026`) only owns compose, agents, and `config/openclaw.
 
 ## Upgrade steps
 
-1. In Coolify **Environment**, set `OPENCLAW_IMAGE_TAG` to the new tag (e.g. `2026.5.12` → next release),  
+1. In Coolify **Environment**, set `OPENCLAW_IMAGE_TAG` to a tag that exists on Docker Hub (e.g. `2026.5.12`; for Paperclip use `2026.5.7` — there is no `2026.5.10`),  
    or edit `deploy/coolify/docker-compose.yml` `image:` line and push to `main`.
 2. Coolify: enable **Pull latest image** → **Redeploy** (recreate containers).
 3. Verify on VPS:
