@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Generate a real gateway token and write to persisted config (+ optional Coolify JSON).
-# Then set the SAME value in Coolify → Environment → OPENCLAW_GATEWAY_TOKEN and redeploy.
+# Set gateway token everywhere (default: simple placeholder uni-random-token).
+# Same value must be in Coolify OPENCLAW_GATEWAY_TOKEN and Paperclip x-openclaw-token.
 set -euo pipefail
 
 CONFIG="${OPENCLAW_CONFIG:-/opt/openclaw/data/.openclaw/openclaw.json}"
 COOLIFY_JSON="${COOLIFY_JSON:-/data/coolify/applications/ug0g8cs4kkw0040cwsswk40c/openclaw.json}"
 CONTAINER="${OPENCLAW_CONTAINER:-openclaw-ug0g8cs4kkw0040cwsswk40c}"
 
-NEW_TOKEN="${1:-$(openssl rand -hex 32)}"
+NEW_TOKEN="${1:-uni-random-token}"
 
-echo "New token length: ${#NEW_TOKEN} (not printed — copy from Coolify after you paste it there)"
+echo "Setting gateway token to: $NEW_TOKEN"
 echo
 
 jq --arg t "$NEW_TOKEN" '

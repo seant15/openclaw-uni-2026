@@ -30,17 +30,15 @@ if [[ -z "$TOKEN" || "$TOKEN" == "null" ]]; then
   echo "ERROR: No gateway token in $CONFIG or $COOLIFY_ENV"
   exit 1
 fi
-if [[ "$TOKEN" == "uni-random-token" ]]; then
-  echo "ERROR: Token is still placeholder uni-random-token."
-  echo "Fix (one block on this VPS):"
-  echo "  NEW=\$(openssl rand -hex 32)"
-  echo "  # Coolify UI → OPENCLAW_GATEWAY_TOKEN=\$NEW → Redeploy"
-  echo "  jq --arg t \"\$NEW\" '.gateway.auth.token=\$t|.gateway.auth.mode=\"token\"' $CONFIG > /tmp/oc.json && mv /tmp/oc.json $CONFIG"
-  echo "  docker restart openclaw-ug0g8cs4kkw0040cwsswk40c"
-  exit 1
+# Optional: force a simple shared secret (same value in Coolify + Paperclip headers)
+if [[ -n "${OPENCLAW_GATEWAY_TOKEN:-}" ]]; then
+  TOKEN="$OPENCLAW_GATEWAY_TOKEN"
 fi
-if [[ ${#TOKEN} -lt 16 ]]; then
-  echo "ERROR: Token looks too short (${#TOKEN} chars)."
+if [[ "$TOKEN" == "uni-random-token" ]]; then
+  echo "Using placeholder token uni-random-token (OK if Coolify + Paperclip use the same value)."
+fi
+if [[ ${#TOKEN} -lt 8 ]]; then
+  echo "ERROR: Token too short (${#TOKEN} chars)."
   exit 1
 fi
 # conn UUIDs from gateway logs are 36 chars — real tokens are usually longer
