@@ -8,23 +8,35 @@ GATEWAY_WSS="${GATEWAY_WSS:-wss://open.uni-agency.com}"
 GATEWAY_HTTPS="${GATEWAY_HTTPS:-https://open.uni-agency.com}"
 PAPERCLIP_BASE="${PAPERCLIP_BASE:-https://paperclip.uni-agency.com}"
 CONFIG="${OPENCLAW_CONFIG:-/opt/openclaw/data/.openclaw/openclaw.json}"
+COOLIFY_ENV="${COOLIFY_ENV:-/data/coolify/applications/ug0g8cs4kkw0040cwsswk40c/.env}"
 
 echo "== Paperclip onboard helper =="
 echo "Invite: $INVITE_ID | Agent: $AGENT_NAME"
 echo
 
-if [[ ! -f "$CONFIG" ]]; then
-  echo "ERROR: Config not found: $CONFIG"
-  exit 1
-fi
+read_token() {
+  local t=""
+  if [[ -f "$CONFIG" ]]; then
+    t="$(jq -r '.gateway.auth.token // empty' "$CONFIG")"
+  fi
+  if [[ -z "$t" || "$t" == "null" || "$t" == "uni-random-token" ]] && [[ -f "$COOLIFY_ENV" ]]; then
+    t="$(grep -E '^OPENCLAW_GATEWAY_TOKEN=' "$COOLIFY_ENV" | head -1 | cut -d= -f2- | tr -d '\r' | sed 's/^["'\'']//;s/["'\'']$//')"
+  fi
+  echo "$t"
+}
 
-TOKEN="$(jq -r '.gateway.auth.token // empty' "$CONFIG")"
+TOKEN="$(read_token)"
 if [[ -z "$TOKEN" || "$TOKEN" == "null" ]]; then
-  echo "ERROR: No gateway.auth.token in $CONFIG"
+  echo "ERROR: No gateway token in $CONFIG or $COOLIFY_ENV"
   exit 1
 fi
 if [[ "$TOKEN" == "uni-random-token" ]]; then
-  echo "ERROR: Token is still placeholder uni-random-token — set OPENCLAW_GATEWAY_TOKEN in Coolify and redeploy."
+  echo "ERROR: Token is still placeholder uni-random-token."
+  echo "Fix (one block on this VPS):"
+  echo "  NEW=\$(openssl rand -hex 32)"
+  echo "  # Coolify UI → OPENCLAW_GATEWAY_TOKEN=\$NEW → Redeploy"
+  echo "  jq --arg t \"\$NEW\" '.gateway.auth.token=\$t|.gateway.auth.mode=\"token\"' $CONFIG > /tmp/oc.json && mv /tmp/oc.json $CONFIG"
+  echo "  docker restart openclaw-ug0g8cs4kkw0040cwsswk40c"
   exit 1
 fi
 if [[ ${#TOKEN} -lt 16 ]]; then
